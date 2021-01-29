@@ -1,0 +1,23 @@
+name: Vectology
+
+channels:
+  - anaconda
+  - conda-forge
+
+dependencies:
+  - python=3.7
+  - black
+  - beautifulsoup4
+  - elasticsearch
+  - matplotlib
+  - numpy
+  - pandas
+  - scipy
+  - requests
+  - networkx
+  - jupyter
+  - jupyterlab
+  - scikit-bio
+  - seaborn
+  - pip:
+    - nxontology
