@@ -11,7 +11,7 @@ Use EBI GWAS data set
 Map to EFO using:
 - OnToma (turn off zooma EBI file mapping)
 - Zooma (turn off zooma EBI file mapping)
-- BioSentVec
+- BioSentVec (use GWAS preprocessing?)
 - BERT-EFO
  
 How to include top X results?
