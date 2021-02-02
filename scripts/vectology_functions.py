@@ -47,4 +47,14 @@ def create_aaa_distances(vectors=[]):
     print(len(pws))
     return pws
 
+#takes an array of vectors
+def create_pair_distances(v1=[],v2=[]):
+    print('Creating distances...')
+    #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
+
+    print(len(v1),len(v2))
+    y = distance.cdist(v1, v2, 'cosine')
+    print(len(y))
+    return y
+
  
