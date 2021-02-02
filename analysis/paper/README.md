@@ -16,6 +16,7 @@ Map to EFO using:
  
 How to include top X results?
 - Top 1,5,10
+- Maybe calculate distance from predicted EFO to manual EFO using nxontology. And then compare distributions of these.
  
 
  
