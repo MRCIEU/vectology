@@ -57,4 +57,26 @@ def create_pair_distances(v1=[],v2=[]):
     print(len(y))
     return y
 
+# general encode function for df  
+def encode_traits(trait_df,col,name,model):
+
+    vectorList=[]
+    count = 0
+    #loop through 10 rows at a time
+    for k,g in trait_df.groupby(np.arange(len(trait_df))//10):
+        #get text for embedding
+        textList=list(g[col])
+        res = embed_text(textList,model)
+        
+        #add vectors to list
+        for i in range(0,len(textList)):
+            vectorList.append(res[i])
+            
+        count+=10
+        if count % 1000 == 0:
+            print(count,trait_df.shape[0])
+
+    print(len(vectorList),'vectors created')        
+    trait_df[name] = vectorList
+    return trait_df
  
