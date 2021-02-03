@@ -21,3 +21,4 @@ dependencies:
   - seaborn
   - pip:
     - nxontology
+    - ontoma
