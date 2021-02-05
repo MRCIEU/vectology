@@ -17,7 +17,9 @@ Map to EFO using:
 How to include top X results?
 - Top 1,5,10
 - Maybe calculate distance from predicted EFO to manual EFO using nxontology. And then compare distributions of these.
- 
+  - Create heatmap of EFO and nxtontology score for each model
+- Compare cosine distance of top hit to nxontology distance
+  - can this be used to help predict bad mappings
 
  
 ### Comparison to other approaches for automated mapping to ontology
