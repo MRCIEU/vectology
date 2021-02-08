@@ -19,6 +19,7 @@ dependencies:
   - jupyterlab
   - scikit-bio
   - seaborn
+  - pandas-profiling
   - pip:
     - nxontology
     - ontoma
