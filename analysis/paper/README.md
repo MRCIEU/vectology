@@ -21,6 +21,9 @@ How to include top X results?
 - Compare cosine distance of top hit to nxontology distance
   - can this be used to help predict bad mappings
 
+To Do:
+- pandas profiling on final df to check for correlations 
+
  
 ### Comparison to other approaches for automated mapping to ontology
  
@@ -33,3 +36,14 @@ Create two matrices
 	- Compare each to each
 
 Compare the two matrices as above 
+
+Models:
+- BioSentVec
+- BlueBERT
+- BERT-EFO
+- Google Universal Sentence Encoder
+
+Benchmarks:
+- BIOSSES
+- MEDSTS
+- https://github.com/ncbi-nlp/BLUE_Benchmark
