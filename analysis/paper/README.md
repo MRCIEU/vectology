@@ -20,6 +20,8 @@ How to include top X results?
   - Create heatmap of EFO and nxtontology score for each model
 - Compare cosine distance of top hit to nxontology distance
   - can this be used to help predict bad mappings
+  - what is the distribution of nxontology scores for top 10 predictions? Can this be used to infer a consensus hit from top 10?
+  - take top 5 nxontology distances, create weighted average and create density plot 
 
 To Do:
 - pandas profiling on final df to check for correlations 
