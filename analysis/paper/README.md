@@ -22,6 +22,7 @@ How to include top X results?
   - can this be used to help predict bad mappings
   - what is the distribution of nxontology scores for top 10 predictions? Can this be used to infer a consensus hit from top 10?
   - take top 5 nxontology distances, create weighted average and create density plot 
+- Bayesian optimisation using the EFO structure?
 
 To Do:
 - pandas profiling on final df to check for correlations 
