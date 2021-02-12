@@ -24,8 +24,8 @@ How to include top X results?
   - take top 5 nxontology distances, create weighted average and create density plot 
 - Bayesian optimisation using the EFO structure?
 
-To Do:
-- pandas profiling on final df to check for correlations 
+Compare differences
+ - Looks for cases where each model matches manual prediction and none of the others do
 
  
 ### Comparison to other approaches for automated mapping to ontology
