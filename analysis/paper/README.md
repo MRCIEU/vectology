@@ -20,13 +20,16 @@ How to include top X results?
   - Create heatmap of EFO and nxtontology score for each model
 - Compare cosine distance of top hit to nxontology distance
   - can this be used to help predict bad mappings
-  - what is the distribution of nxontology scores for top 10 predictions? Can this be used to infer a consensus hit from top 10?
+  - what is the distribution of nxontology scores for top 10 predictions? Can this be used to infer a consensus hit from top 10?f
   - take top 5 nxontology distances, create weighted average and create density plot 
 - Bayesian optimisation using the EFO structure?
 
 Compare differences
  - Looks for cases where each model matches manual prediction and none of the others do
 
+Note, there are scores associated with manual EBI mapping, e.g. Exact, Broad, Narrow, None....
+- see https://github.com/EBISPOT/EFO-UKB-mappings/blob/master/ISMB_Mapping_UK_Biobank_to_EFO.pdf
+- could limit analysis to certain ones, e.g. just Exact
  
 ### Comparison to other approaches for trait-to-trait mapping
 
