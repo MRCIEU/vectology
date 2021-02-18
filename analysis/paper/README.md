@@ -28,7 +28,15 @@ Compare differences
  - Looks for cases where each model matches manual prediction and none of the others do
 
  
-### Comparison to other approaches for automated mapping to ontology
+### Comparison to other approaches for trait-to-trait mapping
+
+##### EBI-EFO data
+
+- For each model, run all-against-all for query data
+- Run all against all nxontology for manual EFO for each query
+- Plot correlation between nxontology and aaa distances
+
+##### OpenGWAS
  
 Percentage agreement between BERT-EFO and standard OpenGWAS trait-trait mappings.
 - Look at sample of those that disagree
@@ -46,7 +54,7 @@ Models:
 - BERT-EFO
 - Google Universal Sentence Encoder
 
-Benchmarks:
+##### Benchmarks:
 - BIOSSES
 - MEDSTS
 - https://github.com/ncbi-nlp/BLUE_Benchmark
