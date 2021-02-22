@@ -2,10 +2,11 @@ import requests
 import json
 import time
 import numpy as np
+import pandas as pd
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from scipy.spatial import distance
-
+from nxontology import NXOntology
 
 #vectology api 
 #function to get filtered text
@@ -80,3 +81,15 @@ def encode_traits(trait_df,col,name,model):
     trait_df[name] = vectorList
     return trait_df
  
+#create nxontology network 
+def create_efo_nxo(df,child_col,parent_col) -> NXOntology:
+    nxo = NXOntology()
+    
+    edges = []
+    for i,row in df.iterrows():
+        child = row[child_col]
+        parent = row[parent_col]
+        edges.append((parent,child))
+    #print(edges[0:10])
+    nxo.graph.add_edges_from(edges)
+    return nxo
