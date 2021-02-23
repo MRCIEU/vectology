@@ -45,6 +45,8 @@ def create_aaa_distances(vectors=[]):
     print(len(vectors))
     data = np.array(vectors)
     pws = distance.pdist(data, metric='cosine')
+    #return as square-form distance matrix
+    pws = distance.squareform(pws)
     print(len(pws))
     return pws
 
