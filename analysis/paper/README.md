@@ -30,6 +30,11 @@ Compare differences
 Note, there are scores associated with manual EBI mapping, e.g. Exact, Broad, Narrow, None....
 - see https://github.com/EBISPOT/EFO-UKB-mappings/blob/master/ISMB_Mapping_UK_Biobank_to_EFO.pdf
 - could limit analysis to certain ones, e.g. just Exact
+
+Figures
+1. Number of exact matches
+2. Kernel density plots for nxontology for top X predictions
+3. Details of traits with no predictions for some/all models
  
 ### Comparison to other approaches for trait-to-trait mapping
 
