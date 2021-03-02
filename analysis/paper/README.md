@@ -32,8 +32,8 @@ Note, there are scores associated with manual EBI mapping, e.g. Exact, Broad, Na
 - could limit analysis to certain ones, e.g. just Exact
 
 Figures
-1. Number of exact matches
-2. Kernel density plots for nxontology for top X predictions
+1. Number of exact matches per model
+2. Kernel density plots for weighted average of top X prediction nxontology scores
 3. Details of traits with no predictions for some/all models
  
 ### Comparison to other approaches for trait-to-trait mapping
