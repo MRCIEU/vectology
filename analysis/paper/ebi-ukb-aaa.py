@@ -211,6 +211,7 @@ def create_pairwise_bert_efo(ebi_df):
     print(nx_df.shape)
     print(be_df.head())
     m = pd.merge(nx_df,be_df,left_on=['q1','q2'],right_on=['q1','q2'],how='left')
+    # need to mage values negative to use for spearman analysis against 0-1 scores
     m['score']=m['score']*-1
     logger.info(m.head())
     logger.info(m.shape)
@@ -243,10 +244,33 @@ def com_scores():
     ax=sns.clustermap(spearman)
     ax.savefig(f"{output}/spearman.pdf")
 
-if __name__ == "__main__":
+def random_sample():
+    # get 100 random pairs and analyse
+    com_scores = pd.read_csv(f'{output}/com_scores.tsv.gz',sep='\t')
+    logger.info(com_scores.head())
+    com_sample = com_scores.sample(n=100)
+    logger.info(com_sample.shape)
+
+def test():
+    d={
+        'a':[0.1,0.2,0.3,0.4,0.5],
+        'b':[-1,-2,-3,-4,-5]
+    }
+
+    df = pd.DataFrame(d)
+    print(df.head())
+    print(df.corr(method='spearman'))
+    print(df.describe())
+
+def run_all():
     #efo_nx = create_nx()
     #create_nx_pairs_nr(ebi_df,efo_nx)
-    ebi_all,ebi_filt = read_ebi()
+    #ebi_all,ebi_filt = read_ebi()
     #create_pairwise(ebi_all,ebi_filt)
-    create_pairwise_bert_efo(ebi_filt)
-    com_scores()
+    #create_pairwise_bert_efo(ebi_filt)
+    #com_scores()
+    random_sample()
+
+if __name__ == "__main__":
+    #test()
+    run_all()
