@@ -65,7 +65,7 @@ def read_ebi():
 
     ebi_df_dedup.to_csv(f'{output}/ebi_exact.tsv.gz',sep='\t')
     #ebi_df_dedup = ebi_df_dedup.head(n=10)
-    return ebi_df_dedup
+    return ebi_df,ebi_df_dedup
 
 def create_nx_pairs():
     # create nx score for each full_id
@@ -147,19 +147,19 @@ def create_nx_pairs_nr(ebi_df,efo_nx):
         df = pd.DataFrame(data)
         df.to_csv(f,sep='\t',index=False)
 
-def write_to_file(model_name,pairwise_data,ebi_df):
+def write_to_file(model_name,pairwise_data,ebi_df_all,ebi_df_filt):
     print('writing',model_name)
     d=[]
     f = f'{output}/{model_name}-ebi-query-pairwise.tsv.gz'
     if os.path.exists(f):
         print('Already done',f)
     else:
-        dedup_id_list=list(ebi_df['mapping_id'])
-        dedup_query_list=list(ebi_df['query'])
-        dedup_query_list=list(ebi_df['query'])
+        dedup_id_list=list(ebi_df_filt['mapping_id'])
+        dedup_query_list=list(ebi_df_filt['query'])
+        dedup_query_list=list(ebi_df_filt['query'])
         #fo = gzip.open(f,'w')
         #fo.write("q1\tefo1\tq2\tefo2\tscore\n".encode('utf-8'))
-        ebi_list = list(ebi_df['mapping_id'])
+        ebi_list = list(ebi_df_all['mapping_id'])
         for i in range(0,len(ebi_list)):
             if i % 100 == 0:
                 print(i)
@@ -184,7 +184,7 @@ def write_to_file(model_name,pairwise_data,ebi_df):
         print(df.shape)
         df.to_csv(f,sep='\t',compression='gzip',index=False)
 
-def create_pairwise(ebi_df):
+def create_pairwise(ebi_all,ebi_filt):
     # create pairwise files
     for m in modelData:
         name = m['name']
@@ -194,7 +194,7 @@ def create_pairwise(ebi_df):
             #a=np.load('output/BioSentVec-ebi-aaa.npy')
             print(len(dd))
             #print(len(dd[0]))
-            write_to_file(model_name=name,pairwise_data=dd,ebi_df=ebi_df)
+            write_to_file(model_name=name,pairwise_data=dd,ebi_df_all=ebi_all,ebi_df_filt=ebi_filt)
 
 def create_pairwise_bert_efo(ebi_df):
     # format BERT EFO data
@@ -220,7 +220,6 @@ def com_scores():
     # create df of scores
     com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
     com_scores.rename(columns={'score':'nx'},inplace=True)
-    com_scores.drop(['m1','m2','e1','e2','q1','q2'],axis=1,inplace=True)
     #print(com_scores.head())
     # add the distances
     for m in modelData:
@@ -230,7 +229,14 @@ def com_scores():
             logger.info(name)
             df = pd.read_csv(f,sep='\t')
             com_scores[name]=df['score']
+    logger.info(com_scores.shape)
     logger.info(com_scores.head())
+    logger.info(com_scores.describe())
+    com_scores.dropna(inplace=True)
+    logger.info(com_scores.shape)
+    com_scores.to_csv(f'{output}/com_scores.tsv.gz',sep='\t',index=False)
+
+    com_scores.drop(['m1','m2','e1','e2','q1','q2'],axis=1,inplace=True)
     pearson=com_scores.corr(method='pearson')
     spearman=com_scores.corr(method='spearman')
     logger.info(f'\n{pearson}')
@@ -240,7 +246,7 @@ def com_scores():
 if __name__ == "__main__":
     #efo_nx = create_nx()
     #create_nx_pairs_nr(ebi_df,efo_nx)
-    ebi_df = read_ebi()
-    #create_pairwise(ebi_df)
-    create_pairwise_bert_efo(ebi_df)
+    ebi_all,ebi_filt = read_ebi()
+    #create_pairwise(ebi_all,ebi_filt)
+    create_pairwise_bert_efo(ebi_filt)
     com_scores()
