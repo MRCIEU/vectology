@@ -245,11 +245,40 @@ def com_scores():
     ax.savefig(f"{output}/spearman.pdf")
 
 def random_sample():
-    # get 100 random pairs and analyse
+    # get x random pairs and analyse
+    model = 'BioSentVec'
+    ran_num = 50
     com_scores = pd.read_csv(f'{output}/com_scores.tsv.gz',sep='\t')
     logger.info(com_scores.head())
-    com_sample = com_scores.sample(n=100)
-    logger.info(com_sample.shape)
+    sample = list(com_scores['q1'].sample(n=ran_num,random_state=1))
+    logger.info(sample)
+    com_sample = com_scores[com_scores['q1'].isin(sample) & com_scores['q2'].isin(sample)][['q1','q2','BioSentVec']]
+    # add matching pair
+    for i in sample:
+        df = pd.DataFrame([[i, i, 1]], columns=['q1','q2',model])
+        #print(df)
+        com_sample = com_sample.append(df)
+        #logger.info(com_sample.shape)
+    # add bottom half of triangle
+    for i, rows in com_sample.iterrows():
+        df = pd.DataFrame([[rows['q2'], rows['q1'], rows[model]]], columns=['q1','q2',model])
+        com_sample = com_sample.append(df)
+        #logger.info(com_sample.shape)
+    com_sample.drop_duplicates(inplace=True)
+    #logger.info(com_sample)
+    #com_sample = com_sample[['m1','m2','BioSentVec']].fillna(1)
+    logger.info(com_sample)
+    com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
+    com_sample = com_sample.fillna(1)
+    logger.info(f'\n{com_sample}')
+    #print(com_sample.head())
+    plt.figure(figsize=(16,7))
+    sns.clustermap(
+        com_sample
+                )
+    plt.savefig(f"{output}/sample-clustermap.pdf")
+    #ax=sns.clustermap(t)
+    #ax.savefig(f"{output}/sample.pdf")
 
 def test():
     d={
