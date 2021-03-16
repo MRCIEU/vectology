@@ -244,41 +244,54 @@ def com_scores():
     ax=sns.clustermap(spearman)
     ax.savefig(f"{output}/spearman.pdf")
 
-def random_sample():
+def compare_models_with_sample(sample):
+    logger.info(f'Comparing models with {sample}')
     # get x random pairs and analyse
-    model = 'BioSentVec'
-    ran_num = 50
+    models = [x['name'] for x in modelData]
+    models.remove('Zooma')
+    models.append('nx')
+    com_scores = pd.read_csv(f'{output}/com_scores.tsv.gz',sep='\t')
+    for model in models:
+        logger.info(f'Running {model}')
+        com_sample = com_scores[com_scores['q1'].isin(sample) & com_scores['q2'].isin(sample)][['q1','q2',model]]
+        # add matching pair
+        for i in sample:
+            df = pd.DataFrame([[i, i, 1]], columns=['q1','q2',model])
+            #print(df)
+            com_sample = com_sample.append(df)
+            #logger.info(com_sample.shape)
+        # add bottom half of triangle
+        for i, rows in com_sample.iterrows():
+            df = pd.DataFrame([[rows['q2'], rows['q1'], rows[model]]], columns=['q1','q2',model])
+            com_sample = com_sample.append(df)
+            #logger.info(com_sample.shape)
+        if model == 'BERT-EFO':
+            com_sample[model]=-1*com_sample[model]
+        else:
+            com_sample[model]=com_sample[model]
+        com_sample.drop_duplicates(inplace=True)
+        #logger.info(com_sample)
+        #com_sample = com_sample[['m1','m2','BioSentVec']].fillna(1)
+        logger.info(com_sample)
+        com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
+        com_sample = com_sample.fillna(1)
+        logger.info(f'\n{com_sample}')
+        #print(com_sample.head())
+        plt.figure(figsize=(16,7))
+        sns.clustermap(
+            com_sample
+                    )
+        plt.savefig(f"{output}/sample-clustermap-{model}.pdf")
+        #ax=sns.clustermap(t)
+        #ax.savefig(f"{output}/sample.pdf")
+
+def create_random_queries():
+    ran_num = 25
     com_scores = pd.read_csv(f'{output}/com_scores.tsv.gz',sep='\t')
     logger.info(com_scores.head())
-    sample = list(com_scores['q1'].sample(n=ran_num,random_state=1))
+    sample = list(com_scores['q1'].sample(n=ran_num,random_state=2))
     logger.info(sample)
-    com_sample = com_scores[com_scores['q1'].isin(sample) & com_scores['q2'].isin(sample)][['q1','q2','BioSentVec']]
-    # add matching pair
-    for i in sample:
-        df = pd.DataFrame([[i, i, 1]], columns=['q1','q2',model])
-        #print(df)
-        com_sample = com_sample.append(df)
-        #logger.info(com_sample.shape)
-    # add bottom half of triangle
-    for i, rows in com_sample.iterrows():
-        df = pd.DataFrame([[rows['q2'], rows['q1'], rows[model]]], columns=['q1','q2',model])
-        com_sample = com_sample.append(df)
-        #logger.info(com_sample.shape)
-    com_sample.drop_duplicates(inplace=True)
-    #logger.info(com_sample)
-    #com_sample = com_sample[['m1','m2','BioSentVec']].fillna(1)
-    logger.info(com_sample)
-    com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
-    com_sample = com_sample.fillna(1)
-    logger.info(f'\n{com_sample}')
-    #print(com_sample.head())
-    plt.figure(figsize=(16,7))
-    sns.clustermap(
-        com_sample
-                )
-    plt.savefig(f"{output}/sample-clustermap.pdf")
-    #ax=sns.clustermap(t)
-    #ax.savefig(f"{output}/sample.pdf")
+    return sample
 
 def test():
     d={
@@ -291,6 +304,13 @@ def test():
     print(df.corr(method='spearman'))
     print(df.describe())
 
+def manual_sample():
+    sample = [
+        'Acute renal failure',
+        'Amoebiasis'
+    ]
+    return sample
+
 def run_all():
     #efo_nx = create_nx()
     #create_nx_pairs_nr(ebi_df,efo_nx)
@@ -298,7 +318,9 @@ def run_all():
     #create_pairwise(ebi_all,ebi_filt)
     #create_pairwise_bert_efo(ebi_filt)
     #com_scores()
-    random_sample()
+    #sample = create_random_queries()
+    sample = manual_sample()
+    compare_models_with_sample(sample)
 
 if __name__ == "__main__":
     #test()
