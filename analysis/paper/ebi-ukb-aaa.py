@@ -3,6 +3,7 @@ import numpy as np
 import requests
 import json
 import time
+import re
 import os 
 import gzip
 import timeit
@@ -244,7 +245,7 @@ def com_scores():
     ax=sns.clustermap(spearman)
     ax.savefig(f"{output}/spearman.pdf")
 
-def compare_models_with_sample(sample):
+def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
     # get x random pairs and analyse
     models = [x['name'] for x in modelData]
@@ -266,10 +267,11 @@ def compare_models_with_sample(sample):
             com_sample = com_sample.append(df)
             #logger.info(com_sample.shape)
         if model == 'BERT-EFO':
-            com_sample[model]=-1*com_sample[model]
-        else:
-            com_sample[model]=com_sample[model]
+            #com_sample[model]=-1*com_sample[model]
+            logger.info(com_sample)
         com_sample.drop_duplicates(inplace=True)
+        com_sample['q1']=com_sample['q1'].str[-100:]
+        com_sample['q2']=com_sample['q2'].str[-100:]
         #logger.info(com_sample)
         #com_sample = com_sample[['m1','m2','BioSentVec']].fillna(1)
         logger.info(com_sample)
@@ -281,7 +283,7 @@ def compare_models_with_sample(sample):
         sns.clustermap(
             com_sample
                     )
-        plt.savefig(f"{output}/sample-clustermap-{model}.pdf")
+        plt.savefig(f"{output}/sample-clustermap-{model}-{term}.pdf")
         #ax=sns.clustermap(t)
         #ax.savefig(f"{output}/sample.pdf")
 
@@ -289,25 +291,46 @@ def create_random_queries():
     ran_num = 25
     com_scores = pd.read_csv(f'{output}/com_scores.tsv.gz',sep='\t')
     logger.info(com_scores.head())
-    sample = list(com_scores['q1'].sample(n=ran_num,random_state=2))
+    sample = list(com_scores['q1'].sample(n=ran_num,random_state=3))
     logger.info(sample)
     return sample
 
-def test():
-    d={
-        'a':[0.1,0.2,0.3,0.4,0.5],
-        'b':[-1,-2,-3,-4,-5]
-    }
+def term_sample(term):
+    df = pd.read_csv(f'{output}/ebi_exact.tsv.gz',sep='\t')
+    logger.info(f'\n{df.head()}')
+    df = df[df['query'].str.contains(term,flags=re.IGNORECASE, regex=True)]
+    logger.info(df.shape)
+    logger.info(f'\n{df.head()}')
 
-    df = pd.DataFrame(d)
-    print(df.head())
-    print(df.corr(method='spearman'))
-    print(df.describe())
+    sample = list(df['query'])[:30]
+    return sample
 
-def manual_sample():
+def manual_samples():
     sample = [
-        'Acute renal failure',
-        'Amoebiasis'
+        'Alzheimer s disease',
+        'Abnormalities of heart beat',
+        'Acute hepatitis A',
+        'Sleep disorders',
+        'Unspecified dementia',
+        'Chronic renal failure',
+        'Atopic dermatitis',
+        'Crohn s disease',
+        'Parkinson s disease',
+        'Cushing s syndrome',
+        'Secondary parkinsonism',
+        'Huntington s disease',
+        'Pulmonary valve disorders',
+        'Snoring',
+        'Pulse rate',
+        'Body mass index (BMI)',
+        'Whole body fat mass',
+        'heart/cardiac problem',
+        'sleep apnoea',
+        'high cholesterol',
+        'Daytime dozing / sleeping (narcolepsy)',
+        'heart valve problem/heart murmur',
+        'other renal/kidney problem',
+        'colitis/not crohns or ulcerative colitis'
     ]
     return sample
 
@@ -319,9 +342,22 @@ def run_all():
     #create_pairwise_bert_efo(ebi_filt)
     #com_scores()
     #sample = create_random_queries()
-    sample = manual_sample()
-    compare_models_with_sample(sample)
+    
+    #term = 'neoplasm'
+    #sample = manual_sample(term=term)
+    #compare_models_with_sample(sample=sample,term=term)
+
+    #sample = create_random_queries()
+    #compare_models_with_sample(sample=sample,term='random')
+    
+    sample = manual_samples()
+    compare_models_with_sample(sample=sample,term='manual')
+    
+    term='heart'
+    sample = term_sample(term)
+    compare_models_with_sample(sample=sample,term=term)
 
 if __name__ == "__main__":
     #test()
     run_all()
+    #manual_sample()
