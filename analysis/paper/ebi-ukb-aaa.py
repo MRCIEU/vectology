@@ -12,6 +12,7 @@ from sklearn.manifold import TSNE
 from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo
 from loguru import logger
 from pandas_profiling import ProfileReport
+from skbio.stats.distance import mantel
 
 import seaborn as sns
 
@@ -270,20 +271,24 @@ def compare_models_with_sample(sample,term):
             #com_sample[model]=-1*com_sample[model]
             logger.info(com_sample)
         com_sample.drop_duplicates(inplace=True)
-        com_sample['q1']=com_sample['q1'].str[-100:]
-        com_sample['q2']=com_sample['q2'].str[-100:]
+        #com_sample['q1']=com_sample['q1'].str[-100:]
+        #com_sample['q2']=com_sample['q2'].str[-100:]
         #logger.info(com_sample)
-        #com_sample = com_sample[['m1','m2','BioSentVec']].fillna(1)
         logger.info(com_sample)
         com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
         com_sample = com_sample.fillna(1)
+        
+        n = 1-com_sample.to_numpy()
+        np.save(f'{output}/{model}-{term}.npy',n)
         logger.info(f'\n{com_sample}')
         #print(com_sample.head())
         plt.figure(figsize=(16,7))
         sns.clustermap(
-            com_sample
+            com_sample,
+            cmap='coolwarm'
                     )
         plt.savefig(f"{output}/sample-clustermap-{model}-{term}.pdf")
+        plt.close()
         #ax=sns.clustermap(t)
         #ax.savefig(f"{output}/sample.pdf")
 
@@ -334,6 +339,15 @@ def manual_samples():
     ]
     return sample
 
+def run_mantel():
+    a = np.load(f'{output}/BioSentVec-manual.npy')
+    logger.info(a.shape)
+    logger.info(a)
+    b = np.load(f'{output}/BioBERT-manual.npy')
+    logger.info(b.shape)
+    coeff, p_value, n = mantel(x=a, y=b, method='pearson')
+    logger.info(f'{coeff} {p_value} {n}')
+
 def run_all():
     #efo_nx = create_nx()
     #create_nx_pairs_nr(ebi_df,efo_nx)
@@ -353,11 +367,12 @@ def run_all():
     sample = manual_samples()
     compare_models_with_sample(sample=sample,term='manual')
     
-    term='heart'
-    sample = term_sample(term)
-    compare_models_with_sample(sample=sample,term=term)
+    #term='heart'
+    #sample = term_sample(term)
+    #compare_models_with_sample(sample=sample,term=term)
 
 if __name__ == "__main__":
     #test()
     run_all()
-    #manual_sample()
+    #manual_samples()
+    run_mantel()
