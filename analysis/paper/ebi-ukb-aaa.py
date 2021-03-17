@@ -382,23 +382,20 @@ def run_all():
     #com_scores()
     #sample = create_random_queries()
     
-    #term = 'neoplasm'
-    #sample = manual_sample(term=term)
-    #compare_models_with_sample(sample=sample,term=term)
-
-    term = 'random'
-    sample = create_random_queries()
+    term = 'neoplasm'
+    sample = term_sample(term=term)
     compare_models_with_sample(sample=sample,term=term)
     run_mantel(term)
+
+    #term = 'random'
+    #sample = create_random_queries()
+    #compare_models_with_sample(sample=sample,term=term)
+    #run_mantel(term)
     
     #term='manual'
     #sample = manual_samples()
     #compare_models_with_sample(sample=sample,term='manual')
     #run_mantel(term)
-
-    #term='heart'
-    #sample = term_sample(term)
-    #compare_models_with_sample(sample=sample,term=term)
 
 if __name__ == "__main__":
     #test()
