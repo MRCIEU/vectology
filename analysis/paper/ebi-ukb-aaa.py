@@ -278,8 +278,10 @@ def compare_models_with_sample(sample,term):
         com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
         com_sample = com_sample.fillna(1)
         
+        # 1 minus to work with mantel
         n = 1-com_sample.to_numpy()
         np.save(f'{output}/{model}-{term}.npy',n)
+
         logger.info(f'\n{com_sample}')
         #print(com_sample.head())
         plt.figure(figsize=(16,7))
@@ -339,14 +341,37 @@ def manual_samples():
     ]
     return sample
 
-def run_mantel():
-    a = np.load(f'{output}/BioSentVec-manual.npy')
-    logger.info(a.shape)
-    logger.info(a)
-    b = np.load(f'{output}/BioBERT-manual.npy')
-    logger.info(b.shape)
-    coeff, p_value, n = mantel(x=a, y=b, method='pearson')
-    logger.info(f'{coeff} {p_value} {n}')
+def run_mantel(term):
+    models = [x['name'] for x in modelData]
+    models.remove('Zooma')
+    models.append('nx')
+    d=[]
+    for i in range(0,len(models)):
+        for j in range(0,len(models)):
+            #if i != j:
+            m1 = models[i]
+            m2 = models[j]
+            logger.info(f'{m1} {m2}')
+            n1 = np.load(f'{output}/{m1}-{term}.npy')
+            #logger.info(n1.shape)
+            n2 = np.load(f'{output}/{m2}-{term}.npy')
+            #logger.info(n2.shape)
+            coeff, p_value, n = mantel(x=n1, y=n2, method='pearson')
+            logger.info(f'{coeff} {p_value} {n}')
+            d.append({
+                'm1':m1,'m2':m2,'coeff':coeff,'p_value':p_value
+            })
+    df = pd.DataFrame(d)
+    logger.info(f'\n{df}')
+    df = df.pivot(index='m1', columns='m2', values='coeff')
+    logger.info(f'\n{df}')
+    plt.figure(figsize=(16,7))
+    sns.clustermap(
+            df,
+            cmap='coolwarm'
+            )
+    plt.savefig(f"{output}/mantel-{term}.pdf")
+    plt.close()
 
 def run_all():
     #efo_nx = create_nx()
@@ -361,12 +386,16 @@ def run_all():
     #sample = manual_sample(term=term)
     #compare_models_with_sample(sample=sample,term=term)
 
-    #sample = create_random_queries()
-    #compare_models_with_sample(sample=sample,term='random')
+    term = 'random'
+    sample = create_random_queries()
+    compare_models_with_sample(sample=sample,term=term)
+    run_mantel(term)
     
-    sample = manual_samples()
-    compare_models_with_sample(sample=sample,term='manual')
-    
+    #term='manual'
+    #sample = manual_samples()
+    #compare_models_with_sample(sample=sample,term='manual')
+    #run_mantel(term)
+
     #term='heart'
     #sample = term_sample(term)
     #compare_models_with_sample(sample=sample,term=term)
@@ -375,4 +404,4 @@ if __name__ == "__main__":
     #test()
     run_all()
     #manual_samples()
-    run_mantel()
+    #run_mantel('manual')
