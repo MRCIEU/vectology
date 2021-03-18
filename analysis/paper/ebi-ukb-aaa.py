@@ -28,12 +28,14 @@ efo_rels = 'data/epigraphdb_efo_rels.csv'
 nxontology_measure = 'batet'
 
 modelData = [
-    {'name':'BioSentVec','model':'BioSentVec'},
-    {'name':'BioBERT','model':'biobert_v1.1_pubmed'},
-    {'name':'BlueBERT','model':'NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12'},
-    {'name':'GUSE','model':'GUSEv4'},
     {'name':'BERT-EFO','model':'BERT-EFO'},
-    {'name':'Zooma','model':'Zooma'}
+    {'name':'BioBERT','model':'biobert_v1.1_pubmed'},
+    {'name':'BioSentVec','model':'BioSentVec'},
+    {'name':'BlueBERT','model':'NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12'},
+    {'name':'GUSE','model':'GUSEv4'},    
+    {'name':'Spacy','model':'en_core_web_lg'},
+    {'name':'SciSpacy','model':'en_core_sci_lg'},
+    {'name':'Zooma','model':'Zooma'},
 ]
 
 pallete="hls"
@@ -69,7 +71,7 @@ def read_ebi():
     #ebi_df_dedup = ebi_df_dedup.head(n=10)
     return ebi_df,ebi_df_dedup
 
-def create_nx_pairs():
+def create_nx_pairs(ebi_df_dedup):
     # create nx score for each full_id
     print(ebi_df_dedup.shape)
     f = f"{output}/nx-ebi-pairs.tsv.gz"
@@ -149,6 +151,27 @@ def create_nx_pairs_nr(ebi_df,efo_nx):
         df = pd.DataFrame(data)
         df.to_csv(f,sep='\t',index=False)
 
+def create_aaa():
+    # run all against all for EBI query data
+    m = modelData[0]
+    for m in modelData:
+        name = m['name']
+        f1 = f'output/{name}-ebi-encode.npy'
+        f2 = f'{output}/{name}-ebi-aaa.npy'
+        if os.path.exists(f2):
+            logger.info(f'{name} done')
+        else:
+            if os.path.exists(f1):
+                print(m)
+                dd = np.load(f1)
+                print(len(dd))
+                aaa = create_aaa_distances(dd)
+                np.save(f2,aaa)
+                #print(len(aaa))
+            else:
+                print(f1,'does not exist')
+
+
 def write_to_file(model_name,pairwise_data,ebi_df_all,ebi_df_filt):
     print('writing',model_name)
     d=[]
@@ -194,7 +217,7 @@ def create_pairwise(ebi_all,ebi_filt):
         if os.path.exists(f):
             dd = np.load(f'{output}/{name}-ebi-aaa.npy')
             #a=np.load('output/BioSentVec-ebi-aaa.npy')
-            print(len(dd))
+            logger.info(len(dd))
             #print(len(dd[0]))
             write_to_file(model_name=name,pairwise_data=dd,ebi_df_all=ebi_all,ebi_df_filt=ebi_filt)
 
@@ -244,7 +267,7 @@ def com_scores():
     spearman=com_scores.corr(method='spearman')
     logger.info(f'\n{pearson}')
     ax=sns.clustermap(spearman)
-    ax.savefig(f"{output}/spearman.pdf")
+    ax.savefig(f"{output}/images/spearman.pdf")
 
 def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
@@ -289,7 +312,7 @@ def compare_models_with_sample(sample,term):
             com_sample,
             cmap='coolwarm'
                     )
-        plt.savefig(f"{output}/sample-clustermap-{model}-{term}.pdf")
+        plt.savefig(f"{output}/images/sample-clustermap-{model}-{term}.pdf")
         plt.close()
         #ax=sns.clustermap(t)
         #ax.savefig(f"{output}/sample.pdf")
@@ -370,32 +393,35 @@ def run_mantel(term):
             df,
             cmap='coolwarm'
             )
-    plt.savefig(f"{output}/mantel-{term}.pdf")
+    plt.savefig(f"{output}/images/mantel-{term}.pdf")
     plt.close()
 
-def run_all():
-    #efo_nx = create_nx()
-    #create_nx_pairs_nr(ebi_df,efo_nx)
-    #ebi_all,ebi_filt = read_ebi()
-    #create_pairwise(ebi_all,ebi_filt)
-    #create_pairwise_bert_efo(ebi_filt)
-    #com_scores()
-    #sample = create_random_queries()
-    
+def sample_checks():
+        
     term = 'neoplasm'
     sample = term_sample(term=term)
     compare_models_with_sample(sample=sample,term=term)
     run_mantel(term)
 
-    #term = 'random'
-    #sample = create_random_queries()
-    #compare_models_with_sample(sample=sample,term=term)
-    #run_mantel(term)
+    term = 'random'
+    sample = create_random_queries()
+    compare_models_with_sample(sample=sample,term=term)
+    run_mantel(term)
     
-    #term='manual'
-    #sample = manual_samples()
-    #compare_models_with_sample(sample=sample,term='manual')
-    #run_mantel(term)
+    term='manual'
+    sample = manual_samples()
+    compare_models_with_sample(sample=sample,term='manual')
+    run_mantel(term)
+
+def run_all():
+    #efo_nx = create_nx()
+    #create_nx_pairs_nr(ebi_df,efo_nx)
+    create_aaa()
+    ebi_all,ebi_filt = read_ebi()
+    create_pairwise(ebi_all,ebi_filt)
+    #create_pairwise_bert_efo(ebi_filt)
+    com_scores()
+    sample_checks()
 
 if __name__ == "__main__":
     #test()
