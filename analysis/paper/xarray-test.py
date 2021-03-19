@@ -26,13 +26,12 @@ logger.info(ebi_df.head())
 
 def create_aaa():
     # run all against all for EBI query data
-    ds = xr.Dataset(coords={"x":ebi_df['mapping_id'],"y":ebi_df['mapping_id']})
-
+    data_arrays = {}
     for m in modelData:
         name = m['name']
         f1 = f'output/{name}-ebi-encode.npy'
         f2 = f'{output}/{name}-ebi-aaa.npys'
-        data_arrays = []
+        
         if os.path.exists(f2):
             logger.info(f'{name} done')
         else:
@@ -41,15 +40,15 @@ def create_aaa():
                 dd = np.load(f1)
                 logger.info(len(dd))
                 aaa = create_aaa_distances(dd)
-                data = xr.DataArray(aaa,dims=("x","y"),coords={"x":ebi_df['mapping_id'],"y":ebi_df['mapping_id']},name=name)
+                data = xr.DataArray(aaa,dims=("x","y"),coords={"x":ebi_df['mapping_id'],"y":ebi_df['mapping_id']})
                 data.attrs["long_name"] = name
                 data.x.attrs["units"]="cosine distance"
                 data.y.attrs["units"]="cosine distance"
                 logger.info(data)
                 logger.info(data.x.attrs)
 
-                # add datarray to dataset
-                ds[name]=data
+                # add dataarray to dictionary
+                data_arrays[name]=data
 
                 # plot - bad idea
                 #data.plot()
@@ -61,7 +60,7 @@ def create_aaa():
 
             else:
                 print(f1,'does not exist')
-
+    ds = xr.Dataset(data_arrays)
     logger.info(ds)
     # save to file
     ds.to_netcdf(f"{output}/all-aaa.nc")
