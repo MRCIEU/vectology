@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
+import matplotlib.pyplot as plt
 import os
 from loguru import logger
 from scripts.vectology_functions import create_aaa_distances
@@ -25,32 +26,47 @@ logger.info(ebi_df.head())
 
 def create_aaa():
     # run all against all for EBI query data
+    ds = xr.Dataset(coords={"x":ebi_df['mapping_id'],"y":ebi_df['mapping_id']})
+
     for m in modelData:
         name = m['name']
         f1 = f'output/{name}-ebi-encode.npy'
         f2 = f'{output}/{name}-ebi-aaa.npys'
+        data_arrays = []
         if os.path.exists(f2):
             logger.info(f'{name} done')
         else:
             if os.path.exists(f1):
-                print(m)
+                logger.info(m)
                 dd = np.load(f1)
-                print(len(dd))
+                logger.info(len(dd))
                 aaa = create_aaa_distances(dd)
                 data = xr.DataArray(aaa,dims=("x","y"),coords={"x":ebi_df['mapping_id'],"y":ebi_df['mapping_id']},name=name)
-                data.attrs["long_name"] = "random velocity"
+                data.attrs["long_name"] = name
                 data.x.attrs["units"]="cosine distance"
                 data.y.attrs["units"]="cosine distance"
                 logger.info(data)
                 logger.info(data.x.attrs)
-                data.plot()
+
+                # add datarray to dataset
+                ds[name]=data
+
+                # plot - bad idea
+                #data.plot()
+                #plt.savefig('test.pdf')
+                
+                #convert to pandas df
                 #df = data.to_dataframe()
                 #logger.info(df.head())
-                data.to_netcdf(f"{output}/{name}-aaa.nc")
-                #np.save(f2,aaa)
-                #print(len(aaa))
+
             else:
                 print(f1,'does not exist')
 
+    logger.info(ds)
+    # save to file
+    ds.to_netcdf(f"{output}/all-aaa.nc")
 
 create_aaa()
+
+
+#print(xr.__version__)
