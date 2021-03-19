@@ -23,6 +23,11 @@ dependencies:
   - tensorflow=2.0
   - tensorflow-hub
   - loguru
+  - xarray 
+  - dask 
+  - netCDF4 
+  - bottleneck
+  - pip
   - pip:
     - nxontology
     - spacy
