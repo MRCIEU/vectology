@@ -267,7 +267,7 @@ def com_scores():
     spearman=com_scores.corr(method='spearman')
     logger.info(f'\n{pearson}')
     ax=sns.clustermap(spearman)
-    ax.savefig(f"{output}/images/spearman.pdf")
+    ax.savefig(f"{output}/images/spearman.png",dpi=1000)
 
 def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
@@ -312,7 +312,7 @@ def compare_models_with_sample(sample,term):
             com_sample,
             cmap='coolwarm'
                     )
-        plt.savefig(f"{output}/images/sample-clustermap-{model}-{term}.pdf")
+        plt.savefig(f"{output}/images/sample-clustermap-{model}-{term}.png",dpi=1000)
         plt.close()
         #ax=sns.clustermap(t)
         #ax.savefig(f"{output}/sample.pdf")
@@ -393,7 +393,7 @@ def run_mantel(term):
             df,
             cmap='coolwarm'
             )
-    plt.savefig(f"{output}/images/mantel-{term}.pdf")
+    plt.savefig(f"{output}/images/mantel-{term}.png",dpi=1000)
     plt.close()
 
 def sample_checks():
