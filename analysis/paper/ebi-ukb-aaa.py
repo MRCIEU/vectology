@@ -8,6 +8,7 @@ import os
 import gzip
 import timeit
 import matplotlib.pyplot as plt
+import difflib
 from sklearn.manifold import TSNE
 from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo
 from loguru import logger
@@ -38,6 +39,7 @@ modelData = [
     {'name':'Spacy','model':'en_core_web_lg','col':cols[5]},
     {'name':'SciSpacy','model':'en_core_sci_lg','col':cols[6]},
     {'name':'Zooma','model':'Zooma','col':cols[7]},
+    {'name':'SequenceMatcher','model':'SequenceMatcher','col':cols[8]},
 ]
 
 #palette="hls"
@@ -227,6 +229,25 @@ def create_pairwise(ebi_all,ebi_filt):
             #print(len(dd[0]))
             write_to_file(model_name=name,pairwise_data=dd,ebi_df_all=ebi_all,ebi_df_filt=ebi_filt)
 
+def create_pairwise_sequence_matcher(ebi_df_filt):
+    f = f'{output}/SequenceMatcher-ebi-query-pairwise.tsv.gz'
+    if os.path.exists(f):
+        logger.info(f'{f} done')
+    else:
+        d=[]
+        ebi_df_filt_dic = ebi_df_filt.to_dict('records')
+        for i in range(0,len(ebi_df_filt_dic)):
+            for j in range(i,len(ebi_df_filt_dic)):
+                if i != j:
+                    distance = difflib.SequenceMatcher(None, ebi_df_filt_dic[i]['query'], ebi_df_filt_dic[j]['query']).ratio()
+                    d.append({'q1':ebi_df_filt_dic[i]['query'],'q2':ebi_df_filt_dic[j]['query'],'m1':ebi_df_filt_dic[i]['mapping_id'],'m2':ebi_df_filt_dic[j]['mapping_id'],'score':distance})
+        df = pd.DataFrame(d)
+        print(df.shape)
+        df.drop_duplicates(subset=['q1','q2'],inplace=True)
+        print(df.shape)
+        df.to_csv(f,sep='\t',compression='gzip',index=False)
+                
+
 def create_pairwise_bert_efo(ebi_df):
     # format BERT EFO data
     be_df = pd.read_csv(f'data/BERT-EFO-ebi-query-pairwise.csv.gz')
@@ -274,6 +295,7 @@ def com_scores():
     logger.info(f'\n{pearson}')
     ax=sns.clustermap(spearman)
     ax.savefig(f"{output}/images/spearman.png",dpi=1000)
+    ax.close()
 
 def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
@@ -425,12 +447,11 @@ def run_all():
     create_aaa()
     ebi_all,ebi_filt = read_ebi()
     create_pairwise(ebi_all,ebi_filt)
-    #create_pairwise_bert_efo(ebi_filt)
+    create_pairwise_bert_efo(ebi_filt)
+    create_pairwise_sequence_matcher(ebi_filt)
     com_scores()
     sample_checks()
 
 if __name__ == "__main__":
     #test()
     run_all()
-    #manual_samples()
-    #run_mantel('manual')
