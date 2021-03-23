@@ -27,7 +27,6 @@ dependencies:
   - dask 
   - netCDF4 
   - bottleneck
-  - nltk
   - pip
   - pip:
     - nxontology
