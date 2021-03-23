@@ -27,18 +27,24 @@ efo_nodes = 'data/epigraphdb_efo_nodes.csv'
 efo_rels = 'data/epigraphdb_efo_rels.csv'
 nxontology_measure = 'batet'
 
+cols = sns.color_palette()
+
 modelData = [
-    {'name':'BERT-EFO','model':'BERT-EFO'},
-    {'name':'BioBERT','model':'biobert_v1.1_pubmed'},
-    {'name':'BioSentVec','model':'BioSentVec'},
-    {'name':'BlueBERT','model':'NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12'},
-    {'name':'GUSE','model':'GUSEv4'},    
-    {'name':'Spacy','model':'en_core_web_lg'},
-    {'name':'SciSpacy','model':'en_core_sci_lg'},
-    {'name':'Zooma','model':'Zooma'},
+    {'name':'BERT-EFO','model':'BERT-EFO','col':cols[0]},
+    {'name':'BioBERT','model':'biobert_v1.1_pubmed','col':cols[1]},
+    {'name':'BioSentVec','model':'BioSentVec','col':cols[2]},
+    {'name':'BlueBERT','model':'NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12','col':cols[3]},
+    {'name':'GUSE','model':'GUSEv4','col':cols[4]},    
+    {'name':'Spacy','model':'en_core_web_lg','col':cols[5]},
+    {'name':'SciSpacy','model':'en_core_sci_lg','col':cols[6]},
+    {'name':'Zooma','model':'Zooma','col':cols[7]},
 ]
 
-pallete="hls"
+#palette="hls"
+palette = {}
+for m in modelData:
+    palette[m['name']]=m['col']
+    
 output='output/trait-trait'
 
 tSNE=TSNE(n_components=2)
