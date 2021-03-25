@@ -31,7 +31,7 @@ nxontology_measure = 'batet'
 cols = sns.color_palette()
 
 modelData = [
-    {'name':'BERT-EFO','model':'BERT-EFO','col':cols[0]},
+    {'name':'BLUEBERT-EFO','model':'BLUEBERT-EFO','col':cols[0]},
     {'name':'BioBERT','model':'biobert_v1.1_pubmed','col':cols[1]},
     {'name':'BioSentVec','model':'BioSentVec','col':cols[2]},
     {'name':'BlueBERT','model':'NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12','col':cols[3]},
@@ -250,7 +250,7 @@ def create_pairwise_sequence_matcher(ebi_df_filt):
 
 def create_pairwise_bert_efo(ebi_df):
     # format BERT EFO data
-    be_df = pd.read_csv(f'data/BERT-EFO-ebi-query-pairwise.csv.gz')
+    be_df = pd.read_csv(f'data/BERT-BLUEBERT-ebi-query-pairwise.csv.gz')
     be_df.rename(columns={'text_1':'q1','text_2':'q2'},inplace=True)
     dedup_query_list=list(ebi_df['query'])
     be_df = be_df[be_df['q1'].isin(dedup_query_list) & be_df['q2'].isin(dedup_query_list)]
@@ -258,7 +258,7 @@ def create_pairwise_bert_efo(ebi_df):
     print(be_df.shape)
 
     nx_df = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
-    #be_df = pd.read_csv(f'{output}/BERT-EFO-ebi-query-pairwise.tsv.gz',sep='\t')
+    #be_df = pd.read_csv(f'{output}/BERT-BLUEBERT-ebi-query-pairwise.tsv.gz',sep='\t')
 
     print(nx_df.shape)
     print(be_df.head())
@@ -267,7 +267,7 @@ def create_pairwise_bert_efo(ebi_df):
     m['score']=m['score']*-1
     logger.info(m.head())
     logger.info(m.shape)
-    m.to_csv(f'{output}/BERT-EFO-ebi-query-pairwise.tsv.gz',compression='gzip',index=False,sep='\t')
+    m.to_csv(f'{output}/BLUEBERT-EFO-ebi-query-pairwise.tsv.gz',compression='gzip',index=False,sep='\t')
 
 def com_scores():
     # create df of scores
@@ -318,7 +318,7 @@ def compare_models_with_sample(sample,term):
             df = pd.DataFrame([[rows['q2'], rows['q1'], rows[model]]], columns=['q1','q2',model])
             com_sample = com_sample.append(df)
             #logger.info(com_sample.shape)
-        if model == 'BERT-EFO':
+        if model == 'BLUEBERT-EFO':
             #com_sample[model]=-1*com_sample[model]
             logger.info(com_sample)
         com_sample.drop_duplicates(inplace=True)
