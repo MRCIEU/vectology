@@ -452,6 +452,9 @@ def run_all():
     com_scores()
     sample_checks()
 
+def test():
+    ebi_all,ebi_filt = read_ebi()
+
 if __name__ == "__main__":
-    #test()
-    run_all()
+    test()
+    #run_all()
