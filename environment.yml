@@ -32,4 +32,5 @@ dependencies:
     - nxontology
     - spacy
     - scispacy
+    - umap-learn
 
