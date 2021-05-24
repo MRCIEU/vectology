@@ -237,6 +237,7 @@ def run_guse(ebi_df,efo_node_df):
         for g in guse_efo_embeddings:
             guse_efo_embeddings_list.append(g.numpy())
         np.save(f2,guse_efo_embeddings_list)
+        logger.info('GUSE done')
 
 def run_spacy(model,name,ebi_df,efo_node_df):
     f1 = f'output/{name}-ebi-encode.npy'
@@ -244,6 +245,7 @@ def run_spacy(model,name,ebi_df,efo_node_df):
     if os.path.exists(f2):
         logger.info(f'{f2} exists')
     else:
+        logger.info(f'loading {model}')
         nlp = spacy.load(model)
         ebi_query_docs = list(nlp.pipe(ebi_df['query']))
         efo_label_docs = list(nlp.pipe(efo_node_df['efo_label']))
@@ -677,9 +679,7 @@ def create_examples():
     df_range = pd.read_csv(f'{output}/spread-predictions.tsv',sep='\t').sort_values('std',ascending=False).head(n=10)
     df_range = tidy_up_and_get_rank(df_range)
 
-
-
-if __name__ == "__main__":
+def run():
     efo_node_df = efo_node_data()
     ebi_df = get_ebi_data(efo_node_df)
     encode_ebi(ebi_df)
@@ -700,3 +700,13 @@ if __name__ == "__main__":
     run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow')
     get_top_hits()
     create_examples()
+
+def dev():
+    efo_node_df = efo_node_data()
+    ebi_df = get_ebi_data(efo_node_df)
+    #run_guse(ebi_df,efo_node_df)
+    #run_spacy(model="en_core_sci_lg",name='SciSpacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
+    run_seq_matcher(ebi_df,efo_node_df)
+
+if __name__ == "__main__":
+    dev()
