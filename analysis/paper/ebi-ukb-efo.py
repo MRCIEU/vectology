@@ -22,8 +22,6 @@ sns.set_theme()
 
 # globals
 ebi_data = 'data/UK_Biobank_master_file.tsv'
-#efo_nodes = 'data/efo-nodes.tsv'
-#efo_data = 'data/efo_data.txt.gz'
 efo_nodes = 'data/efo_nodes_2021-05-24.csv'
 efo_rels = 'data/efo_edges_2021-05-24.csv'
 nxontology_measure = 'batet'
@@ -470,7 +468,7 @@ def get_top_using_pairwise_file(model_name,top_num,efo_nx,ebi_df):
         res_df = pd.DataFrame(top_res)
         res_df.to_csv(f,index=False,sep='\t',compression='gzip')
 
-def calc_weighted_average(model_name,top_num,mapping_types):
+def calc_weighted_average(model_name,top_num,mapping_types,ebi_df):
     f = f"{output}/{model_name}-top-100.tsv.gz"
     print(f)
     res = []
@@ -500,7 +498,7 @@ def calc_weighted_average(model_name,top_num,mapping_types):
     print(len(res))
     return res
 
-def run_wa(mapping_types,mapping_name):
+def run_wa(mapping_types,mapping_name,ebi_df):
     for top_num in top_nums:
         all_res = {}
         for m in modelData:
@@ -508,7 +506,7 @@ def run_wa(mapping_types,mapping_name):
                 print('No data for Zooma')
                 continue
             else:
-                res = calc_weighted_average(m['name'],top_num,mapping_types)
+                res = calc_weighted_average(m['name'],top_num,mapping_types,ebi_df)
                 if res is not None:
                     all_res[m['name']]=res
 
@@ -524,8 +522,9 @@ def run_wa(mapping_types,mapping_name):
         ax.set(xlabel=f'Weighted average of nx', ylabel='Density')
         #ax.set_xscale("log")
         ax.savefig(f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png",dpi=1000)
+        ax.close()
 
-def get_top_hits():
+def get_top_hits(ebi_df):
     # get some top counts
     # to do
     # - statify by mapping_type
@@ -535,7 +534,7 @@ def get_top_hits():
     res = []
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
-        print(fName)
+        logger.info(fName)
         df = pd.read_csv(fName,sep='\t')
 
         df = pd.merge(df,ebi_df[['mapping_id','MAPPING_TYPE']],left_on='mapping_id',right_on='mapping_id')
@@ -548,20 +547,20 @@ def get_top_hits():
         d['Total'] = df[df['nx']==1].shape[0]
         res.append(d)
 
-    print(res)
+    logger.info(res)
     res_df = pd.DataFrame(res).sort_values(by='Total',ascending=False)
-    print(res_df)
+    logger.info(res_df)
     ax = res_df[['Exact','Broad','Narrow','Model']].plot.bar(stacked=True,figsize=(8,8))
     ax.set_xticklabels(res_df['Model'], rotation=45, ha='right')
     fig = ax.get_figure()
     fig.savefig(f'{output}/images/top-counts-by-type.png',dpi=1000)
 
-def run_high_low(type:str):
+def run_high_low(type:str,ebi_df_exact):
     match = []
     print(f'\n##### {type} #####')
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
-        print(fName)
+        logger.info(fName)
         df = pd.read_csv(fName,sep='\t')
         # maybe filter on exact mapping type
         #df = df[df['mapping_id'].isin(exact_mapping_type)]
@@ -580,15 +579,15 @@ def run_high_low(type:str):
             missing_df = ebi_df_exact
 
 
-    print(missing_df.shape)
-    print(missing_df['MAPPING_TYPE'].value_counts())
+    logger.info(missing_df.shape)
+    logger.info(missing_df['MAPPING_TYPE'].value_counts())
     #print(missing_df[missing_df['MAPPING_TYPE']=='Exact'].head())
 
     # add the top prediction from each model to the missing df
     # note, some of them don't have any matches to top 100 - why is that...???
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
-        print(fName)
+        logger.info(fName)
         df = pd.read_csv(fName,sep='\t')
         df.drop_duplicates(subset=['mapping_id','manual'],inplace=True) 
         # get data
@@ -623,8 +622,9 @@ def run_high_low(type:str):
     print(missing_df.head())
     missing_df.to_csv(f'{output}/{type}-predictions.tsv',sep='\t',index=False)
 
-def tidy_up_and_get_rank(df):
+def tidy_up_and_get_rank(df,efo_node_df,name):
     efo_cols = [col for col in df.columns if 'efo' in col]
+    efo_dic = dict(zip(efo_node_df['efo_id'],efo_node_df['efo_label']))
     #logger.info(efo_cols)
     keep_list = ['query','MAPPED_TERM_LABEL']
     #efo_cols=['SequenceMatcher-efo']
@@ -633,8 +633,8 @@ def tidy_up_and_get_rank(df):
         model = e.split('-')[0]
         keep_list.append(model)
         model_efo_name = f'{model}-efo-name'
-        logger.info(f'{df[e]} {df[e].map(ebi_dic)}')
-        df[model_efo_name] = df[e].map(ebi_dic)
+        logger.info(f'{df[e]} {df[e].map(efo_dic)}')
+        df[model_efo_name] = df[e].map(efo_dic)
         # get the rank
         top = pd.read_csv(f"{output}/{model}-top-100.tsv.gz",sep='\t')
         logger.info(top)
@@ -648,18 +648,16 @@ def tidy_up_and_get_rank(df):
             if match_rank.empty:
                 match_rank = '>100'
             else:
-                logger.info(match_rank.index[0].item())
-
                 match_rank = match_rank.index[0].item()+1
-            logger.info(match_rank)
             rank_vals.append(f'{row[model_efo_name]} ({match_rank})')
         df[model] = rank_vals
     df = df[keep_list]
     logger.info(f'\n{df}')
+    df.to_csv(f'{output}/{name}.csv',index=False)
     return df
 
-def create_examples():
-    ebi_df = pd.read_csv('output/ebi-ukb-cleaned.tsv',sep='\t')
+def create_examples(efo_node_df):
+    ebi_df = pd.read_csv('output/ebi-ukb-cleaned.csv')
     ebi_df_exact = ebi_df[ebi_df['MAPPING_TYPE']=='Exact']
     logger.info(ebi_df_exact.shape)
 
@@ -667,40 +665,55 @@ def create_examples():
     ebi_df_exact.drop_duplicates(subset=['query'],inplace=True)
     logger.info(ebi_df_exact.shape)
 
-    run_high_low('low')
-    run_high_low('high')
-    run_high_low('spread')
+    run_high_low('low',ebi_df_exact)
+    run_high_low('high',ebi_df_exact)
+    run_high_low('spread',ebi_df_exact)
 
     df_low = pd.read_csv(f'{output}/low-predictions.tsv',sep='\t').head(n=10)
-    df_low = tidy_up_and_get_rank(df_low)
+    df_low = tidy_up_and_get_rank(df_low,efo_node_df,'low')
 
     df_high = pd.read_csv(f'{output}/high-predictions.tsv',sep='\t').head(n=10)
-    df_high = tidy_up_and_get_rank(df_high)
+    df_high = tidy_up_and_get_rank(df_high,efo_node_df,'high')
 
     df_range = pd.read_csv(f'{output}/spread-predictions.tsv',sep='\t').sort_values('std',ascending=False).head(n=10)
-    df_range = tidy_up_and_get_rank(df_range)
+    df_range = tidy_up_and_get_rank(df_range,efo_node_df,'spread')
 
 def run():
+    # get efo node data
     efo_node_df = efo_node_data()
+    # get ebi efo data
     ebi_df = get_ebi_data(efo_node_df)
+    # create embeddings for ebi using vectology models
     encode_ebi(ebi_df)
+    # create embedings for efo using vectology models
     encode_efo(efo_node_df)
+    # run Google Universal
     run_guse(ebi_df,efo_node_df)
+    # run spacy
     run_spacy(model="en_core_web_lg",name='Spacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
     run_spacy(model="en_core_sci_lg",name='SciSpacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
+    # run sequencematcher
     run_seq_matcher(ebi_df,efo_node_df)
+    # create nxontology
     efo_nx = create_nx()
+    # run pairwise cosine distance 
     create_pair_data(ebi_df,efo_node_df)
+    # run zooma
     run_zooma()
     filter_zooma(efo_nx,ebi_df)
+    # filter pairwise data
     for m in modelData:
         filter_paiwise_file(model_name=m['name'])
         get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx)
+    # filter BERT-EFO results
     filter_bert()
-    run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all')
-    run_wa(mapping_types=['Exact'],mapping_name='exact')
-    run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow')
-    get_top_hits()
+    # create summary weighted average plots
+    run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all',ebi_df=ebi_df)
+    run_wa(mapping_types=['Exact'],mapping_name='exact',ebi_df=ebi_df)
+    run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow',ebi_df=ebi_df)
+    # create summary tophits plot
+    get_top_hits(ebi_df)
+    # create high/low/spread tables
     create_examples()
 
 def dev():
@@ -709,11 +722,12 @@ def dev():
     #create_nx()
     #create_pair_data(ebi_df,efo_node_df)
     #run_zooma(ebi_df)
-    efo_nx = create_nx()
-    #for m in modelData:
-    #    filter_paiwise_file(model_name=m['name'])
-    #    get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx,ebi_df=ebi_df)
-    filter_zooma(efo_nx,ebi_df)
+    #efo_nx = create_nx()
+    #run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all',ebi_df=ebi_df)
+    #run_wa(mapping_types=['Exact'],mapping_name='exact',ebi_df=ebi_df)
+    #run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow',ebi_df=ebi_df)
+    #get_top_hits(ebi_df)
+    create_examples(efo_node_df)
 
 if __name__ == "__main__":
     dev()
