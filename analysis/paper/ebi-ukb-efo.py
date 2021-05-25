@@ -417,7 +417,7 @@ def filter_paiwise_file(model_name):
             logger.info(f'Error {model_name}')
             return
 
-def filter_bert():
+def filter_bert(ebi_df,efo_node_df):
     df = pd.read_csv(f"data/efo_mk1_inference_top100_no_underscores.csv.gz")
     df_top = df.sort_values(by=['score']).groupby('text_1').head(top_x)
     df_top = pd.merge(df_top,ebi_df[['mapping_id','query','full_id']],left_on='text_1',right_on='query')
@@ -430,7 +430,7 @@ def filter_bert():
     df_top.drop('efo_label',axis=1,inplace=True)
     df_top.drop_duplicates(subset=['mapping_id','manual','prediction'],inplace=True)
     logger.info(df_top.head())
-    df_top[['mapping_id','manual','prediction','score']].sort_values(by=['mapping_id','score']).to_csv(f'{output}/BERT-EFO-pairwise-filter.tsv.gz',index=False,compression='gzip',sep='\t')
+    df_top[['mapping_id','manual','prediction','score']].sort_values(by=['mapping_id','score']).to_csv(f'{output}/BLUEBERT-EFO-pairwise-filter.tsv.gz',index=False,compression='gzip',sep='\t')
     logger.info(df_top.head())
 
 def get_top_using_pairwise_file(model_name,top_num,efo_nx,ebi_df):
@@ -630,7 +630,7 @@ def tidy_up_and_get_rank(df,efo_node_df,name):
     #efo_cols=['SequenceMatcher-efo']
     for e in efo_cols:
         logger.info(e)
-        model = e.split('-')[0]
+        model = e.replace('-efo','')
         keep_list.append(model)
         model_efo_name = f'{model}-efo-name'
         logger.info(f'{df[e]} {df[e].map(efo_dic)}')
@@ -722,12 +722,16 @@ def dev():
     #create_nx()
     #create_pair_data(ebi_df,efo_node_df)
     #run_zooma(ebi_df)
-    #efo_nx = create_nx()
+    efo_nx = create_nx()
     #run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all',ebi_df=ebi_df)
     #run_wa(mapping_types=['Exact'],mapping_name='exact',ebi_df=ebi_df)
     #run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow',ebi_df=ebi_df)
-    #get_top_hits(ebi_df)
+    for m in modelData:
+        filter_paiwise_file(model_name=m['name'])
+        get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx,ebi_df=ebi_df)
+    get_top_hits(ebi_df)
     create_examples(efo_node_df)
+    #filter_bert(ebi_df,efo_node_df)
 
 if __name__ == "__main__":
     dev()
