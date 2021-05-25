@@ -152,6 +152,7 @@ def get_ebi_data(efo_node_df):
         logger.info(ebi_df.head())
         logger.info(ebi_df.shape)
         ebi_df.to_csv(f,index=False)
+    logger.info(f'\n{ebi_df.head()}')
     return ebi_df
 
 def encode_ebi(ebi_df):
@@ -283,6 +284,7 @@ def run_seq_matcher(ebi_df,efo_node_df):
 
 def create_nx():
     #create nxontology network of EFO relationships
+    logger.info('Creating nx...')
     efo_rel_df=pd.read_csv(efo_rels)
     efo_nx = create_efo_nxo(df=efo_rel_df,child_col='sub',parent_col='obj')
     efo_nx.freeze()
@@ -308,7 +310,7 @@ def run_pairs(model):
         logger.info('done')
         return dd
 
-def write_to_file(model_name,pairwise_data):
+def write_to_file(model_name,pairwise_data,ebi_df,efo_node_df):
     logger.info(f'writing {model_name}')
     f = f'{output}/{model_name}-pairwise.tsv.gz'
     if os.path.exists(f):
@@ -329,34 +331,33 @@ def write_to_file(model_name,pairwise_data):
                 fo.write(f"{i+1}\t{ebi_efo_list[i]}\t{efo_list[j]}\t{score}\n".encode('utf-8'))
                 mCount+=1
 
-def create_pair_data():
+def create_pair_data(ebi_df,efo_node_df):
     for m in modelData:
         logger.info(m['name'])
         dd = run_pairs(m['name'])
         if dd is not None:
             #get_top(m['name'],dd)   
-            write_to_file(model_name=m['name'],pairwise_data=dd) 
+            write_to_file(model_name=m['name'],pairwise_data=dd,ebi_df=ebi_df,efo_node_df=efo_node_df) 
         else:
             logger.info(f'{m["name"]} not done')
 
 # zooma using API
-def zoom_api(text):
-    zooma_api = 'https://www.ebi.ac.uk/spot/zooma/v2/api/services/annotate'
+def zooma_api(text):
+    zooma_api_url = 'https://www.ebi.ac.uk/spot/zooma/v2/api/services/annotate'
     payload = {
         'propertyValue':text,
         'filter':'required:[none],ontologies:[efo]'
     }
-    res = requests.get(zooma_api,params=payload).json()
+    res = requests.get(zooma_api_url,params=payload).json()
     if res:
-        logger.info(res)
+        #logger.info(res)
         efo = res[0]['semanticTags'][0]
         confidence = res[0]['confidence']
         return {'query':text,'prediction':efo.strip(),'confidence':confidence.strip()}
     else:
         return {'query':text,'prediction':'NA','confidence':'NA'}
-    #zooma_api('Vascular disorders of intestine')
 
-def run_zooma():
+def run_zooma(ebi_df):
     # takes around 3 minutes for 1,000
     f=f'{output}/zooma.tsv'
     if os.path.exists(f):
@@ -365,7 +366,7 @@ def run_zooma():
         all_res = []
         count=1
         for q in list(ebi_df['query']):
-            res = run_zooma(q)
+            res = zooma_api(q)
             res['mapping_id']=count
             all_res.append(res)
             count+=1
@@ -378,7 +379,7 @@ def run_zooma():
         #df[['mapping_id','manual','prediction','confidence']].to_csv(f,index=False,sep='\t')
         df.to_csv(f,index=False,sep='\t')
 
-def filter_zooma():
+def filter_zooma(efo_nx,ebi_df):
     dis_results=[]
     efo_results=[]
     df = pd.read_csv(f'{output}/zooma.tsv',sep='\t')
@@ -434,7 +435,7 @@ def filter_bert():
     df_top[['mapping_id','manual','prediction','score']].sort_values(by=['mapping_id','score']).to_csv(f'{output}/BERT-EFO-pairwise-filter.tsv.gz',index=False,compression='gzip',sep='\t')
     logger.info(df_top.head())
 
-def get_top_using_pairwise_file(model_name,top_num):
+def get_top_using_pairwise_file(model_name,top_num,efo_nx,ebi_df):
     f = f"{output}/{model_name}-top-{top_num}.tsv.gz"
     if os.path.exists(f):
         logger.info(f'Top done {model_name}')
@@ -689,11 +690,12 @@ def run():
     run_spacy(model="en_core_sci_lg",name='SciSpacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
     run_seq_matcher(ebi_df,efo_node_df)
     efo_nx = create_nx()
+    create_pair_data(ebi_df,efo_node_df)
     run_zooma()
-    filter_zooma()
+    filter_zooma(efo_nx,ebi_df)
     for m in modelData:
         filter_paiwise_file(model_name=m['name'])
-        get_top_using_pairwise_file(model_name=m['name'],top_num=100)
+        get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx)
     filter_bert()
     run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all')
     run_wa(mapping_types=['Exact'],mapping_name='exact')
@@ -704,9 +706,14 @@ def run():
 def dev():
     efo_node_df = efo_node_data()
     ebi_df = get_ebi_data(efo_node_df)
-    #run_guse(ebi_df,efo_node_df)
-    #run_spacy(model="en_core_sci_lg",name='SciSpacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
-    run_seq_matcher(ebi_df,efo_node_df)
+    #create_nx()
+    #create_pair_data(ebi_df,efo_node_df)
+    #run_zooma(ebi_df)
+    efo_nx = create_nx()
+    #for m in modelData:
+    #    filter_paiwise_file(model_name=m['name'])
+    #    get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx,ebi_df=ebi_df)
+    filter_zooma(efo_nx,ebi_df)
 
 if __name__ == "__main__":
     dev()
