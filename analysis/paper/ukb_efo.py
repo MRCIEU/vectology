@@ -22,24 +22,10 @@ sns.set_theme()
 
 # globals
 ebi_data = 'data/UK_Biobank_master_file.tsv'
-efo_nodes = 'data/efo_nodes_2021-05-24.csv'
-efo_rels = 'data/efo_edges_2021-05-24.csv'
+efo_nodes = 'data/efo_nodes.csv'
+efo_rels = 'data/efo_edges.csv'
 nxontology_measure = 'batet'
 top_x = 100
-
-def get_data():
-    # get the EBI UKB data
-    if not os.path.exists(ebi_data):
-        os.system("wget -O data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv")
-    # get the EFO data
-    if not os.path.exists(efo_nodes):
-        os.system("wget -O data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.0/efo.json")
-        node_df, edge_df = create_efo_data('data/efo.json')
-        node_df.to_csv(efo_nodes)
-        edge_df.to_csv(efo_rels)
-    
-
-top_nums=[1,2,5,10,20,50,100]
 
 # define the models and set some colours
 cols = sns.color_palette()
@@ -61,6 +47,22 @@ for m in modelData:
 # set up an output directory
 output='output/trait-efo'
 
+
+# get the UKB EFO mappings and EFO data
+def get_data():
+    # get the EBI UKB data
+    if not os.path.exists(ebi_data):
+        logger.info(f'Downloading {ebi_data}...')
+        os.system("wget -O data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv")
+    # get the EFO data
+    if not os.path.exists(efo_nodes):
+        logger.info(f'Downloading efo.json...')
+        os.system("wget -O data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.1/efo.json")
+        node_df, edge_df = create_efo_data('data/efo.json')
+        node_df.to_csv(efo_nodes,index=False)
+        edge_df.to_csv(efo_rels,index=False)
+
+# read EFO node data
 def efo_node_data():
     # get EFO node data
     df = pd.read_csv(efo_nodes)
@@ -72,14 +74,13 @@ def efo_node_data():
     logger.info({df.shape})
     return df
 
+# read the EBI mapping data
 def get_ebi_data(efo_node_df):
     f = 'output/ebi-ukb-cleaned.csv'
     if os.path.exists(f):
         logger.info(f'{f} exists')
         ebi_df = pd.read_csv(f)
     else:
-        
-
         ebi_df = pd.read_csv(ebi_data,sep='\t')
 
         #drop some columns
@@ -87,22 +88,6 @@ def get_ebi_data(efo_node_df):
         ebi_df.rename(columns={'ZOOMA QUERY':'query'},inplace=True)
         logger.info(f'\n{ebi_df.head()}')
         logger.info(ebi_df.shape)
-
-        #create new rows for multiple labels
-        #ebi_df = (
-        #        ebi_df.assign(label=ebi_df.MAPPED_TERM_LABEL.str.split("\|\|"))
-        #        .explode("label")
-        #        .reset_index(drop=True).drop('MAPPED_TERM_LABEL',axis=1)
-        #    )
-
-        #create new rows for multiple ids
-        #ebi_df['MAPPED_TERM_URI']=ebi_df['MAPPED_TERM_URI'].str.replace('\|\|',',')
-        #ebi_df['MAPPED_TERM_URI']=ebi_df['MAPPED_TERM_URI'].str.replace('\|',',')
-        #ebi_df = (
-        #        .explode("id")
-        #        .reset_index(drop=True).drop('MAPPED_TERM_URI',axis=1)
-        #        ebi_df.assign(id=ebi_df.MAPPED_TERM_URI.str.split(","))
-        #    )
 
         # drop rows with multiple mappings
         ebi_df = ebi_df[~ebi_df['MAPPED_TERM_URI'].str.contains(',',na=False)]
@@ -134,7 +119,6 @@ def get_ebi_data(efo_node_df):
         logger.info(f'\n{ebi_df["MAPPING_TYPE"].value_counts()}')
 
         # check data against efo nodes
-
         efo_node_ids = list(efo_node_df['efo_id'])
         ebi_ids = list(ebi_df['id'])
         missing=[]
@@ -164,8 +148,8 @@ def get_ebi_data(efo_node_df):
     logger.info(f'\n{ebi_df.head()}')
     return ebi_df
 
+# encode the EBI query terms with Vectology models 
 def encode_ebi(ebi_df):
-    # encode the EBI query terms with Vectology models
     queries = list(ebi_df['query'])
     chunk=10
 
@@ -191,6 +175,7 @@ def encode_ebi(ebi_df):
                 logger.info(f'Results {len(results)}')
                 np.save(f,results)
 
+# embed the efo node names with Vectology models 
 def encode_efo(efo_node_df):
     queries = list(efo_node_df['efo_label'])
     chunk=20
@@ -217,7 +202,7 @@ def encode_efo(efo_node_df):
                 #logger.info(f'Results {results}')
                 np.save(f,results)
 
-# create GUSE encodings for EBI and EFO
+# create GUSE embeddings for EBI and EFO
 def run_guse(ebi_df,efo_node_df):
     f1 = 'output/GUSE-ebi-encode.npy'
     f2 = 'output/GUSE-efo-encode.npy'
@@ -249,6 +234,7 @@ def run_guse(ebi_df,efo_node_df):
         np.save(f2,guse_efo_embeddings_list)
         logger.info('GUSE done')
 
+# create SPACY and SciSpaCy embeddings
 def run_spacy(model,name,ebi_df,efo_node_df):
     f1 = f'output/{name}-ebi-encode.npy'
     f2 = f'output/{name}-efo-encode.npy'
@@ -270,6 +256,7 @@ def run_spacy(model,name,ebi_df,efo_node_df):
             spacy_efo_embeddings_list.append(g.vector)
         np.save(f2,spacy_efo_embeddings_list)
 
+# run sequencematcher
 def run_seq_matcher(ebi_df,efo_node_df):
     f = f'{output}/SequenceMatcher-pairwise.tsv.gz'
     if os.path.exists(f):
@@ -291,6 +278,7 @@ def run_seq_matcher(ebi_df,efo_node_df):
         logger.info(df.head())
         df.to_csv(f,sep='\t',index=False,compression='gzip')
 
+# create an nxontology instance for EFO hierarchy
 def create_nx():
     #create nxontology network of EFO relationships
     logger.info('Creating nx...')
@@ -299,6 +287,7 @@ def create_nx():
     efo_nx.freeze()
     return efo_nx
 
+# create cosine pairs 
 def run_pairs(model):
     dd_name = f"{output}/{model}-dd.npy"
     
@@ -319,6 +308,7 @@ def run_pairs(model):
         logger.info('done')
         return dd
 
+# parse cosine paris and write to file
 def write_to_file(model_name,pairwise_data,ebi_df,efo_node_df):
     logger.info(f'writing {model_name}')
     f = f'{output}/{model_name}-pairwise.tsv.gz'
@@ -340,6 +330,7 @@ def write_to_file(model_name,pairwise_data,ebi_df,efo_node_df):
                 fo.write(f"{i+1}\t{ebi_efo_list[i]}\t{efo_list[j]}\t{score}\n".encode('utf-8'))
                 mCount+=1
 
+# wrapper for above
 def create_pair_data(ebi_df,efo_node_df):
     for m in modelData:
         logger.info(m['name'])
@@ -350,7 +341,7 @@ def create_pair_data(ebi_df,efo_node_df):
         else:
             logger.info(f'{m["name"]} not done')
 
-# zooma using API
+# zooma API
 def zooma_api(text):
     zooma_api_url = 'https://www.ebi.ac.uk/spot/zooma/v2/api/services/annotate'
     payload = {
@@ -366,6 +357,7 @@ def zooma_api(text):
     else:
         return {'query':text,'prediction':'NA','confidence':'NA'}
 
+# run zooma API for ebi mappings
 def run_zooma(ebi_df):
     # takes around 3 minutes for 1,000
     f=f'{output}/zooma.tsv'
@@ -388,6 +380,7 @@ def run_zooma(ebi_df):
         #df[['mapping_id','manual','prediction','confidence']].to_csv(f,index=False,sep='\t')
         df.to_csv(f,index=False,sep='\t')
 
+# filter the zooma output
 def filter_zooma(efo_nx,ebi_df):
     dis_results=[]
     efo_results=[]
@@ -409,6 +402,7 @@ def filter_zooma(efo_nx,ebi_df):
     df.to_csv(f'{output}/Zooma-pairwise-filter.tsv.gz',sep='\t',index=False,compression='gzip')
     #sns.displot(df, x="score",kde=True)
 
+# create filtered pairwsise data 
 def filter_paiwise_file(model_name):
     logger.info(f'filter_pairwise_file {model_name}')
     f = f"{output}/{model_name}-pairwise-filter.tsv.gz"
@@ -428,6 +422,7 @@ def filter_paiwise_file(model_name):
             logger.info(f'Error {model_name}')
             return
 
+# read BLUEBERT-EFO data and filter 
 def filter_bert(ebi_df,efo_node_df):
     df = pd.read_csv(f"data/efo_mk1_inference_top100_no_underscores.csv.gz")
     df_top = df.sort_values(by=['score']).groupby('text_1').head(top_x)
@@ -444,6 +439,7 @@ def filter_bert(ebi_df,efo_node_df):
     df_top[['mapping_id','manual','prediction','score']].sort_values(by=['mapping_id','score']).to_csv(f'{output}/BLUEBERT-EFO-pairwise-filter.tsv.gz',index=False,compression='gzip',sep='\t')
     logger.info(df_top.head())
 
+# create top pairs
 def get_top_using_pairwise_file(model_name,top_num,efo_nx,ebi_df):
     f = f"{output}/{model_name}-top-{top_num}.tsv.gz"
     if os.path.exists(f):
@@ -479,6 +475,7 @@ def get_top_using_pairwise_file(model_name,top_num,efo_nx,ebi_df):
         res_df = pd.DataFrame(top_res)
         res_df.to_csv(f,index=False,sep='\t',compression='gzip')
 
+# calculate weighted average
 def calc_weighted_average(model_name,top_num,mapping_types,ebi_df):
     f = f"{output}/{model_name}-top-100.tsv.gz"
     print(f)
@@ -509,7 +506,9 @@ def calc_weighted_average(model_name,top_num,mapping_types,ebi_df):
     print(len(res))
     return res
 
+# run a range of weighted averages 
 def run_wa(mapping_types,mapping_name,ebi_df):
+    top_nums=[1,2,5,10,20,50,100]
     for top_num in top_nums:
         all_res = {}
         for m in modelData:
@@ -535,6 +534,7 @@ def run_wa(mapping_types,mapping_name,ebi_df):
         ax.savefig(f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png",dpi=1000)
         ax.close()
 
+# create plot of number of correct top predictions for each model
 def get_top_hits(ebi_df):
     # get some top counts
     # to do
@@ -566,6 +566,10 @@ def get_top_hits(ebi_df):
     fig = ax.get_figure()
     fig.savefig(f'{output}/images/top-counts-by-type.png',dpi=1000)
 
+# look at examples where predictions vary across model
+# high = all high nx
+# low = all low nx
+# spread = high sd nx
 def run_high_low(type:str,ebi_df_exact):
     match = []
     print(f'\n##### {type} #####')
@@ -633,6 +637,7 @@ def run_high_low(type:str,ebi_df_exact):
     print(missing_df.head())
     missing_df.to_csv(f'{output}/{type}-predictions.tsv',sep='\t',index=False)
 
+# output tidy files from above 
 def tidy_up_and_get_rank(df,efo_node_df,name):
     efo_cols = [col for col in df.columns if 'efo' in col]
     efo_dic = dict(zip(efo_node_df['efo_id'],efo_node_df['efo_label']))
@@ -667,6 +672,7 @@ def tidy_up_and_get_rank(df,efo_node_df,name):
     df.to_csv(f'{output}/{name}.csv',index=False)
     return df
 
+# run the high/low/spread examples
 def create_examples(efo_node_df):
     ebi_df = pd.read_csv('output/ebi-ukb-cleaned.csv')
     ebi_df_exact = ebi_df[ebi_df['MAPPING_TYPE']=='Exact']

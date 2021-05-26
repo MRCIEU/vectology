@@ -22,14 +22,13 @@ sns.set_theme()
 
 # globals
 ebi_data = 'data/UK_Biobank_master_file.tsv'
-#efo_nodes = 'data/efo-nodes.tsv'
-#efo_data = 'data/efo_data.txt.gz'
-efo_nodes = 'data/epigraphdb_efo_nodes.csv'
-efo_rels = 'data/epigraphdb_efo_rels.csv'
+efo_nodes = 'data/efo_nodes.csv'
+efo_rels = 'data/efo_edges.csv'
 nxontology_measure = 'batet'
+top_x = 100
 
+# define the models and set some colours
 cols = sns.color_palette()
-
 modelData = [
     {'name':'BLUEBERT-EFO','model':'BLUEBERT-EFO','col':cols[0]},
     {'name':'BioBERT','model':'biobert_v1.1_pubmed','col':cols[1]},
@@ -41,8 +40,6 @@ modelData = [
     {'name':'Zooma','model':'Zooma','col':cols[7]},
     {'name':'SequenceMatcher','model':'SequenceMatcher','col':cols[8]},
 ]
-
-#palette="hls"
 palette = {}
 for m in modelData:
     palette[m['name']]=m['col']
@@ -51,8 +48,8 @@ output='output/trait-trait'
 
 tSNE=TSNE(n_components=2)
 
+#create nxontology network of EFO relationships
 def create_nx():
-	#create nxontology network of EFO relationships
     logger.info('Creating nx')
     efo_rel_df=pd.read_csv(efo_rels)
     efo_nx = create_efo_nxo(df=efo_rel_df,child_col='efo.id',parent_col='parent_efo.id')
@@ -452,9 +449,9 @@ def run_all():
     com_scores()
     sample_checks()
 
-def test():
+def dev():
     ebi_all,ebi_filt = read_ebi()
 
 if __name__ == "__main__":
-    test()
+    dev()
     #run_all()

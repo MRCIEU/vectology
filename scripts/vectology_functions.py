@@ -116,7 +116,7 @@ def create_efo_data(efo_data_file):
                             if "val" in n["meta"]["definition"]:
                                 efo_def = n["meta"]["definition"]["val"].replace('\\n',' ').replace('\n',' ').strip()
                     node_data.append(
-                        {"id": efo_id, "lbl": efo_lbl, "definition": efo_def, "umls":umls}
+                        {"id": efo_id, "lbl": efo_lbl, "definition": efo_def}
                     )
             for n in g["edges"]:
                 # logger.info(json.dumps(n, indent=4, sort_keys=True))
