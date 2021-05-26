@@ -52,13 +52,13 @@ tSNE=TSNE(n_components=2)
 def create_nx():
     logger.info('Creating nx')
     efo_rel_df=pd.read_csv(efo_rels)
-    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='efo.id',parent_col='parent_efo.id')
+    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='sub',parent_col='obj')
     efo_nx.freeze()
     return efo_nx
 
 def read_ebi():
     # read cleaned EBI data
-    ebi_df = pd.read_csv('output/ebi-ukb-cleaned.tsv',sep='\t')
+    ebi_df = pd.read_csv('output/ebi-ukb-cleaned.csv')
     logger.info(ebi_df.head())
     logger.info(ebi_df.shape)
 
@@ -76,7 +76,7 @@ def read_ebi():
     #ebi_df_dedup = ebi_df_dedup.head(n=10)
     return ebi_df,ebi_df_dedup
 
-def create_nx_pairs(ebi_df_dedup):
+def create_nx_pairs(ebi_df_dedup,efo_nx):
     # create nx score for each full_id
     print(ebi_df_dedup.shape)
     f = f"{output}/nx-ebi-pairs.tsv.gz"
@@ -247,24 +247,27 @@ def create_pairwise_sequence_matcher(ebi_df_filt):
 
 def create_pairwise_bert_efo(ebi_df):
     # format BERT EFO data
-    be_df = pd.read_csv(f'data/BERT-BLUEBERT-ebi-query-pairwise.csv.gz')
-    be_df.rename(columns={'text_1':'q1','text_2':'q2'},inplace=True)
-    dedup_query_list=list(ebi_df['query'])
-    be_df = be_df[be_df['q1'].isin(dedup_query_list) & be_df['q2'].isin(dedup_query_list)]
-    be_df.drop_duplicates(subset=['q1','q2'],inplace=True)
-    print(be_df.shape)
+    f = f'{output}/BLUEBERT-EFO-ebi-query-pairwise.tsv.gz'
+    if os.path.exists(f):
+        logger.info(f'{f} done')
+    else:
+        be_df = pd.read_csv(f'data/BLUEBERT-EFO-ebi-query-pairwise.csv.gz')
+        be_df.rename(columns={'text_1':'q1','text_2':'q2'},inplace=True)
+        dedup_query_list=list(ebi_df['query'])
+        be_df = be_df[be_df['q1'].isin(dedup_query_list) & be_df['q2'].isin(dedup_query_list)]
+        be_df.drop_duplicates(subset=['q1','q2'],inplace=True)
+        print(be_df.shape)
 
-    nx_df = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
-    #be_df = pd.read_csv(f'{output}/BERT-BLUEBERT-ebi-query-pairwise.tsv.gz',sep='\t')
+        nx_df = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
 
-    print(nx_df.shape)
-    print(be_df.head())
-    m = pd.merge(nx_df,be_df,left_on=['q1','q2'],right_on=['q1','q2'],how='left')
-    # need to mage values negative to use for spearman analysis against 0-1 scores
-    m['score']=m['score']*-1
-    logger.info(m.head())
-    logger.info(m.shape)
-    m.to_csv(f'{output}/BLUEBERT-EFO-ebi-query-pairwise.tsv.gz',compression='gzip',index=False,sep='\t')
+        print(nx_df.shape)
+        print(be_df.head())
+        m = pd.merge(nx_df,be_df,left_on=['q1','q2'],right_on=['q1','q2'],how='left')
+        # need to mage values negative to use for spearman analysis against 0-1 scores
+        m['score']=m['score']*-1
+        logger.info(m.head())
+        logger.info(m.shape)
+        m.to_csv(f,compression='gzip',index=False,sep='\t')
 
 def com_scores():
     # create df of scores
@@ -292,7 +295,6 @@ def com_scores():
     logger.info(f'\n{pearson}')
     ax=sns.clustermap(spearman)
     ax.savefig(f"{output}/images/spearman.png",dpi=1000)
-    ax.close()
 
 def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
@@ -450,7 +452,15 @@ def run_all():
     sample_checks()
 
 def dev():
+    efo_nx = create_nx()
     ebi_all,ebi_filt = read_ebi()
+    create_nx_pairs_nr(ebi_all,efo_nx)
+    create_aaa()
+    create_pairwise(ebi_all,ebi_filt)
+    create_pairwise_bert_efo(ebi_filt)
+    create_pairwise_sequence_matcher(ebi_filt)
+    com_scores()
+    sample_checks()
 
 if __name__ == "__main__":
     dev()
