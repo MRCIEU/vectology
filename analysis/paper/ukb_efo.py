@@ -12,7 +12,7 @@ import timeit
 import scispacy
 import spacy
 import difflib
-from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo
+from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo, create_efo_data
 from loguru import logger
 
 import seaborn as sns
@@ -26,10 +26,23 @@ efo_nodes = 'data/efo_nodes_2021-05-24.csv'
 efo_rels = 'data/efo_edges_2021-05-24.csv'
 nxontology_measure = 'batet'
 top_x = 100
+
+def get_data():
+    # get the EBI UKB data
+    if not os.path.exists(ebi_data):
+        os.system("wget -O data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv")
+    # get the EFO data
+    if not os.path.exists(efo_nodes):
+        os.system("wget -O data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.0/efo.json")
+        node_df, edge_df = create_efo_data('data/efo.json')
+        node_df.to_csv(efo_nodes)
+        edge_df.to_csv(efo_rels)
+    
+
 top_nums=[1,2,5,10,20,50,100]
 
+# define the models and set some colours
 cols = sns.color_palette()
-
 modelData = [
     {'name':'BLUEBERT-EFO','model':'BLUEBERT-EFO','col':cols[0]},
     {'name':'BioBERT','model':'biobert_v1.1_pubmed','col':cols[1]},
@@ -41,10 +54,11 @@ modelData = [
     {'name':'Zooma','model':'Zooma','col':cols[7]},
     {'name':'SequenceMatcher','model':'SequenceMatcher','col':cols[8]},
 ]
-
 palette = {}
 for m in modelData:
     palette[m['name']]=m['col']
+
+# set up an output directory
 output='output/trait-efo'
 
 def efo_node_data():
@@ -64,10 +78,7 @@ def get_ebi_data(efo_node_df):
         logger.info(f'{f} exists')
         ebi_df = pd.read_csv(f)
     else:
-        # get the EBI UKB data
-        #get ebi data
-        #url='https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv'
-        #ebi_df = pd.read_csv(url,sep='\t')
+        
 
         ebi_df = pd.read_csv(ebi_data,sep='\t')
 
@@ -717,21 +728,7 @@ def run():
     create_examples()
 
 def dev():
-    efo_node_df = efo_node_data()
-    ebi_df = get_ebi_data(efo_node_df)
-    #create_nx()
-    #create_pair_data(ebi_df,efo_node_df)
-    #run_zooma(ebi_df)
-    efo_nx = create_nx()
-    #run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all',ebi_df=ebi_df)
-    #run_wa(mapping_types=['Exact'],mapping_name='exact',ebi_df=ebi_df)
-    #run_wa(mapping_types=['Broad','Narrow'],mapping_name='broad-narrow',ebi_df=ebi_df)
-    for m in modelData:
-        filter_paiwise_file(model_name=m['name'])
-        get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx,ebi_df=ebi_df)
-    get_top_hits(ebi_df)
-    create_examples(efo_node_df)
-    #filter_bert(ebi_df,efo_node_df)
+    get_data()
 
 if __name__ == "__main__":
     dev()

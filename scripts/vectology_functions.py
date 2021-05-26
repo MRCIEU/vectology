@@ -7,6 +7,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from scipy.spatial import distance
 from nxontology import NXOntology
+from loguru import logger
 
 #vectology api 
 #function to get filtered text
@@ -95,3 +96,34 @@ def create_efo_nxo(df,child_col,parent_col) -> NXOntology:
     #print(edges[0:10])
     nxo.graph.add_edges_from(edges)
     return nxo
+
+# create node and edge data from EFO json
+def create_efo_data(efo_data_file):
+    node_data = []
+    edge_data = []
+    with open(efo_data_file) as f:
+        data = json.load(f)
+        for g in data["graphs"]:
+            logger.info(f"{len(g['nodes'])} nodes in efo.json")
+            for n in g["nodes"]:
+                # logger.info(json.dumps(n, indent=4, sort_keys=True))
+                efo_id = n["id"]
+                if "lbl" in n:
+                    efo_lbl = n["lbl"].replace('\n',' ').strip()
+                    efo_def = "NA"
+                    if "meta" in n:
+                        if "definition" in n["meta"]:
+                            if "val" in n["meta"]["definition"]:
+                                efo_def = n["meta"]["definition"]["val"].replace('\\n',' ').replace('\n',' ').strip()
+                    node_data.append(
+                        {"id": efo_id, "lbl": efo_lbl, "definition": efo_def, "umls":umls}
+                    )
+            for n in g["edges"]:
+                # logger.info(json.dumps(n, indent=4, sort_keys=True))
+                edge_data.append(n)
+    logger.info(f"{len(node_data)} nodes created")
+    node_df = pd.DataFrame(node_data)
+    logger.info(node_df.head())
+    edge_df = pd.DataFrame(edge_data)
+    logger.info(edge_df)
+    return node_df, edge_df
