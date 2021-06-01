@@ -1,0 +1,30 @@
+name: bert-analysis-serve
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8
+  - environs
+  - loguru
+  - requests
+  - pandas
+  - numpy
+  - scipy
+  - tqdm
+  - scikit-learn
+  - pytorch::pytorch=1.7
+  - pytorch::torchserve
+  - pytorch::torch-model-archiver
+  - tensorboard
+  - pytorch-lightning=1.0.5
+  - gpustat
+  # pip
+  - pip
+  - pip:
+    - pysbd
+    - transformers==3.3
+    - datasets
+    - ray
+    - fastapi
+    - httpie

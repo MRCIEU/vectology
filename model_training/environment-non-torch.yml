@@ -1,0 +1,35 @@
+name: bert-analysis-non-torch
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.7
+  - environs
+  - typer
+  - loguru
+  - requests
+  - pandas
+  - numpy
+  - scipy
+  - seaborn
+  - matplotlib
+  - tqdm
+  - spacy
+  - scikit-learn
+  - networkx
+  # dev stuff
+  - jupyterlab
+  - nodejs
+  - black
+  - mypy
+  - jedi
+  - isort
+  - autoflake
+  - flake8
+  # pip
+  - pip
+  - pip:
+    - pysbd
+    - nb_black
+    - tabview
