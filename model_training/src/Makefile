@@ -4,8 +4,8 @@
 ## ======== pre-processing ========
 
 ## prepare EFO data
-# prep_data_efo:
-# TODO
+prep_data_efo:
+	python -m data_prep_efo_graph
 
 ## prepare ukbiobank trait data
 # prep_data_ukbb:
