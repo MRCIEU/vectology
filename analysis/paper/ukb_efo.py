@@ -277,17 +277,20 @@ def run_seq_matcher(ebi_df,efo_node_df):
         logger.info(f'{f} done')
     else:
         d = []
-        ebi_dic = ebi_df.to_dict('records')
-        efo_dic = efo_node_df.to_dict('records') 
-        for i in range(0,len(ebi_dic)):
-            if i % 100 == 0:
-                logger.info(i)
-            for j in range(0,len(efo_dic)):
-                query = ebi_dic[i]['query']
-                efo_label = efo_dic[j]['efo_label']
-                distance = difflib.SequenceMatcher(None, query, efo_label).ratio()
+        logger.info(f'\n{ebi_df.head()}')
+        logger.info(f'\n{efo_node_df.head()}')
+        ebi_list = list(ebi_df['query'])[:10]
+        efo_list = list(efo_node_df['efo_label'])[:10]
+        #for i in range(0,len(ebi_dic)):
+        #    if i % 100 == 0:
+        #        logger.info(i)
+        #    for j in range(0,len(efo_dic)):
+        #        query = ebi_dic[i]['query']
+        #        efo_label = efo_dic[j]['efo_label']
+        distance = difflib.SequenceMatcher(None, ebi_list, efo_list).ratio()
+        logger.info(distance)
                 #distance = create_edit_distance(query,efo_label)
-                d.append({'mapping_id':ebi_dic[i]['mapping_id'],'manual':ebi_dic[i]['full_id'],'prediction':efo_dic[j]['efo_id'],'score':distance})
+        #d.append({'mapping_id':ebi_dic[i]['mapping_id'],'manual':ebi_dic[i]['full_id'],'prediction':efo_dic[j]['efo_id'],'score':distance})
         df = pd.DataFrame(d)
         logger.info(df.head())
         df.to_csv(f,sep='\t',index=False,compression='gzip')
@@ -749,6 +752,10 @@ def run():
 
 def dev():
     efo_node_df = efo_node_data_v1()
+    # get ebi efo data
+    ebi_df = get_ebi_data(efo_node_df)
+    run_seq_matcher(ebi_df,efo_node_df)
 
 if __name__ == "__main__":
-    run()
+    #run()
+    dev()
