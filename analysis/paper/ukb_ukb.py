@@ -438,15 +438,15 @@ def run_mantel(term):
 
 def sample_checks():
         
-    # term = 'neoplasm'
-    # sample = term_sample(term=term)
-    # compare_models_with_sample(sample=sample,term=term)
-    # run_mantel(term)
+    term = 'neoplasm'
+    sample = term_sample(term=term)
+    compare_models_with_sample(sample=sample,term=term)
+    run_mantel(term)
 
-    # term = 'random'
-    # sample = create_random_queries()
-    # compare_models_with_sample(sample=sample,term=term)
-    # run_mantel(term)
+    term = 'random'
+    sample = create_random_queries()
+    compare_models_with_sample(sample=sample,term=term)
+    run_mantel(term)
     
     term='manual'
     sample = manual_samples()

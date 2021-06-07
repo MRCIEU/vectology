@@ -665,6 +665,7 @@ def tidy_up_and_get_rank(df,efo_node_df,name):
         model = e.replace('-efo','')
         keep_list.append(model)
         model_efo_name = f'{model}-efo-name'
+        model_nx = f'{model}-nx'
         logger.info(f'{df[e]} {df[e].map(efo_dic)}')
         df[model_efo_name] = df[e].map(efo_dic)
         # get the rank
@@ -681,7 +682,7 @@ def tidy_up_and_get_rank(df,efo_node_df,name):
                 match_rank = '>100'
             else:
                 match_rank = match_rank.index[0].item()+1
-            rank_vals.append(f'{row[model_efo_name]} ({match_rank})')
+            rank_vals.append(f'{row[model_efo_name]} ({match_rank}) [{round(row[model_nx],2)}]')
         df[model] = rank_vals
     df = df[keep_list]
     logger.info(f'\n{df}')
@@ -703,6 +704,8 @@ def create_examples(efo_node_df):
     run_high_low('spread',ebi_df_exact)
 
     df_low = pd.read_csv(f'{output}/low-predictions.tsv',sep='\t').head(n=10)
+    logger.info(f'\n{df_low.head()}')
+    logger.info(f'\n{df_low.columns}')
     df_low = tidy_up_and_get_rank(df_low,efo_node_df,'low')
 
     df_high = pd.read_csv(f'{output}/high-predictions.tsv',sep='\t').head(n=10)
@@ -752,10 +755,11 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     # get ebi efo data
-    ebi_df = get_ebi_data(efo_node_df)
+    #ebi_df = get_ebi_data(efo_node_df)
     #run_seq_matcher(ebi_df,efo_node_df)
-    run_levenshtein(ebi_df,efo_node_df)
+    #run_levenshtein(ebi_df,efo_node_df)
+    create_examples(efo_node_df)
 
 if __name__ == "__main__":
-    run()
-    #dev()
+    #run()
+    dev()
