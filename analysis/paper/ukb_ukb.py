@@ -256,12 +256,12 @@ def create_pairwise_bert_efo(ebi_df):
         dedup_query_list=list(ebi_df['query'])
         be_df = be_df[be_df['q1'].isin(dedup_query_list) & be_df['q2'].isin(dedup_query_list)]
         be_df.drop_duplicates(subset=['q1','q2'],inplace=True)
-        print(be_df.shape)
+        logger.info(be_df.shape)
 
         nx_df = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
 
-        print(nx_df.shape)
-        print(be_df.head())
+        logger.info(nx_df.shape)
+        logger.info(be_df.head())
         m = pd.merge(nx_df,be_df,left_on=['q1','q2'],right_on=['q1','q2'],how='left')
         # need to mage values negative to use for spearman analysis against 0-1 scores
         m['score']=m['score']*-1
@@ -271,8 +271,10 @@ def create_pairwise_bert_efo(ebi_df):
 
 def com_scores():
     # create df of scores
+    #com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
     com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
     com_scores.rename(columns={'score':'nx'},inplace=True)
+    logger.info(com_scores.shape)
     #print(com_scores.head())
     # add the distances
     for m in modelData:
@@ -281,14 +283,17 @@ def com_scores():
         if os.path.exists(f):
             logger.info(name)
             df = pd.read_csv(f,sep='\t')
+            logger.info(df.shape)
             com_scores[name]=df['score']
     logger.info(com_scores.shape)
     logger.info(com_scores.head())
     logger.info(com_scores.describe())
+
     # drop pairs that have a missing score?
-    # com_scores.dropna(inplace=True)
+    com_scores.dropna(inplace=True)
     # or replace with 0?
-    com_scores.fillna(0,inplace=True)
+    # com_scores.fillna(0,inplace=True)
+    
     logger.info(com_scores.shape)
     com_scores.to_csv(f'{output}/com_scores.tsv.gz',sep='\t',index=False)
 
@@ -391,18 +396,6 @@ def manual_samples():
         'other renal/kidney problem',
         'colitis/not crohns or ulcerative colitis'
     ]
-
-    sample = [
-        'Alzheimer s disease',
-        'Abnormalities of heart beat',
-        'Acute hepatitis A',
-        'Sleep disorders',
-        'Unspecified dementia',
-        'Chronic renal failure',
-        'Atopic dermatitis',
-        'Crohn s disease',
-    ]
-
     return sample
 
 def run_mantel(term):
@@ -457,6 +450,7 @@ def sample_checks():
 def run_all():
     #efo_nx = create_nx()
     #create_nx_pairs_nr(ebi_df,efo_nx)
+    create_nx_pairs(ebi_filt,efo_nx)
     create_aaa()
     ebi_all,ebi_filt = read_ebi()
     create_pairwise(ebi_all,ebi_filt)
@@ -468,13 +462,13 @@ def run_all():
 def dev():
     #efo_nx = create_nx()
     #ebi_all,ebi_filt = read_ebi()
-    #create_nx_pairs_nr(ebi_all,efo_nx)
+    #create_nx_pairs_nr(ebi_filt,efo_nx)
     #create_aaa()
     #create_pairwise(ebi_all,ebi_filt)
     #create_pairwise_bert_efo(ebi_filt)
     #create_pairwise_sequence_matcher(ebi_filt)
-    #com_scores()
-    sample_checks()
+    com_scores()
+    #sample_checks()
 
 if __name__ == "__main__":
     dev()
