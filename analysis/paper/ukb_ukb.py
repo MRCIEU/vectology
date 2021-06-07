@@ -285,7 +285,10 @@ def com_scores():
     logger.info(com_scores.shape)
     logger.info(com_scores.head())
     logger.info(com_scores.describe())
-    com_scores.dropna(inplace=True)
+    # drop pairs that have a missing score?
+    # com_scores.dropna(inplace=True)
+    # or replace with 0?
+    com_scores.fillna(0,inplace=True)
     logger.info(com_scores.shape)
     com_scores.to_csv(f'{output}/com_scores.tsv.gz',sep='\t',index=False)
 
@@ -298,7 +301,7 @@ def com_scores():
 
 def compare_models_with_sample(sample,term):
     logger.info(f'Comparing models with {sample}')
-    # get x random pairs and analyse
+    # get pairs and analyse
     models = [x['name'] for x in modelData]
     models.remove('Zooma')
     models.append('nx')
@@ -319,12 +322,12 @@ def compare_models_with_sample(sample,term):
             #logger.info(com_sample.shape)
         if model == 'BLUEBERT-EFO':
             #com_sample[model]=-1*com_sample[model]
-            logger.info(com_sample)
+            logger.info(f'\n{com_sample}')
         com_sample.drop_duplicates(inplace=True)
         #com_sample['q1']=com_sample['q1'].str[-100:]
         #com_sample['q2']=com_sample['q2'].str[-100:]
         #logger.info(com_sample)
-        logger.info(com_sample)
+        logger.info(f'\n{com_sample}')
         com_sample = com_sample.pivot(index='q1', columns='q2', values=model)
         com_sample = com_sample.fillna(1)
         
@@ -333,7 +336,6 @@ def compare_models_with_sample(sample,term):
         np.save(f'{output}/{model}-{term}.npy',n)
 
         logger.info(f'\n{com_sample}')
-        #print(com_sample.head())
         plt.figure(figsize=(16,7))
         sns.clustermap(
             com_sample,
@@ -389,6 +391,18 @@ def manual_samples():
         'other renal/kidney problem',
         'colitis/not crohns or ulcerative colitis'
     ]
+
+    sample = [
+        'Alzheimer s disease',
+        'Abnormalities of heart beat',
+        'Acute hepatitis A',
+        'Sleep disorders',
+        'Unspecified dementia',
+        'Chronic renal failure',
+        'Atopic dermatitis',
+        'Crohn s disease',
+    ]
+
     return sample
 
 def run_mantel(term):
@@ -425,15 +439,15 @@ def run_mantel(term):
 
 def sample_checks():
         
-    term = 'neoplasm'
-    sample = term_sample(term=term)
-    compare_models_with_sample(sample=sample,term=term)
-    run_mantel(term)
+    # term = 'neoplasm'
+    # sample = term_sample(term=term)
+    # compare_models_with_sample(sample=sample,term=term)
+    # run_mantel(term)
 
-    term = 'random'
-    sample = create_random_queries()
-    compare_models_with_sample(sample=sample,term=term)
-    run_mantel(term)
+    # term = 'random'
+    # sample = create_random_queries()
+    # compare_models_with_sample(sample=sample,term=term)
+    # run_mantel(term)
     
     term='manual'
     sample = manual_samples()
@@ -452,14 +466,14 @@ def run_all():
     sample_checks()
 
 def dev():
-    efo_nx = create_nx()
-    ebi_all,ebi_filt = read_ebi()
-    create_nx_pairs_nr(ebi_all,efo_nx)
-    create_aaa()
-    create_pairwise(ebi_all,ebi_filt)
-    create_pairwise_bert_efo(ebi_filt)
-    create_pairwise_sequence_matcher(ebi_filt)
-    com_scores()
+    #efo_nx = create_nx()
+    #ebi_all,ebi_filt = read_ebi()
+    #create_nx_pairs_nr(ebi_all,efo_nx)
+    #create_aaa()
+    #create_pairwise(ebi_all,ebi_filt)
+    #create_pairwise_bert_efo(ebi_filt)
+    #create_pairwise_sequence_matcher(ebi_filt)
+    #com_scores()
     sample_checks()
 
 if __name__ == "__main__":
