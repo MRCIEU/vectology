@@ -33,4 +33,5 @@ dependencies:
     - spacy
     - scispacy
     - umap-learn
+    - python-Levenshtein
 
