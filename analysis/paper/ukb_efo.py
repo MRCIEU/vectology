@@ -11,8 +11,6 @@ import gzip
 import timeit
 import scispacy
 import spacy
-import difflib
-from fuzzywuzzy import fuzz
 import Levenshtein
 from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo, create_efo_data
 from loguru import logger
@@ -43,7 +41,7 @@ modelData = [
     {'name':'Spacy','model':'en_core_web_lg','col':cols[5]},
     {'name':'SciSpacy','model':'en_core_sci_lg','col':cols[6]},
     {'name':'Zooma','model':'Zooma','col':cols[7]},
-    {'name':'SequenceMatcher','model':'SequenceMatcher','col':cols[8]},
+    {'name':'Levenshtein','model':'Levenshtein','col':cols[8]},
 ]
 palette = {}
 for m in modelData:
@@ -52,6 +50,7 @@ for m in modelData:
 # set up an output directory
 output='output/trait-efo-v1'
 Path(output).mkdir(parents=True, exist_ok=True)
+Path(f'{output}/images').mkdir(parents=True, exist_ok=True)
 
 # get the UKB EFO mappings and EFO data
 def get_data():
@@ -271,32 +270,6 @@ def run_spacy(model,name,ebi_df,efo_node_df):
         for g in efo_label_docs:
             spacy_efo_embeddings_list.append(g.vector)
         np.save(f2,spacy_efo_embeddings_list)
-
-# run sequencematcher
-def run_seq_matcher(ebi_df,efo_node_df):
-    f = f'{output}/SequenceMatcher-pairwise.tsv.gz'
-    if os.path.exists(f):
-        logger.info(f'{f} done')
-    else:
-        d = []
-        logger.info(f'\n{ebi_df.head()}')
-        logger.info(f'\n{efo_node_df.head()}')
-        ebi_list = list(ebi_df['query'])[:10]
-        efo_list = list(efo_node_df['efo_label'])[:10]
-        logger.info(ebi_list)
-        #for i in range(0,len(ebi_dic)):
-        #    if i % 100 == 0:
-        #        logger.info(i)
-        #    for j in range(0,len(efo_dic)):
-        #        query = ebi_dic[i]['query']
-        #        efo_label = efo_dic[j]['efo_label']
-        distance = difflib.SequenceMatcher(None, ebi_list, efo_list).ratio()
-        logger.info(distance)
-                #distance = create_edit_distance(query,efo_label)
-        #d.append({'mapping_id':ebi_dic[i]['mapping_id'],'manual':ebi_dic[i]['full_id'],'prediction':efo_dic[j]['efo_id'],'score':distance})
-        df = pd.DataFrame(d)
-        logger.info(df.head())
-        df.to_csv(f,sep='\t',index=False,compression='gzip')
 
 def run_levenshtein(ebi_df,efo_node_df):
     f = f'{output}/levenshtein-pairwise.tsv.gz'
@@ -572,7 +545,7 @@ def run_wa(mapping_types,mapping_name,ebi_df):
         ax.set(xlabel=f'Weighted average of nx', ylabel='Density')
         #ax.set_xscale("log")
         ax.savefig(f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png",dpi=1000)
-        ax.close()
+        #ax.close()
 
 # create plot of number of correct top predictions for each model
 def get_top_hits(ebi_df):
@@ -750,20 +723,20 @@ def run():
     run_spacy(model="en_core_web_lg",name='Spacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
     run_spacy(model="en_core_sci_lg",name='SciSpacy',ebi_df=ebi_df,efo_node_df=efo_node_df)
     # run sequencematcher
-    run_seq_matcher(ebi_df,efo_node_df)
+    run_levenshtein(ebi_df,efo_node_df)
     # create nxontology
     efo_nx = create_nx()
     # run pairwise cosine distance 
     create_pair_data(ebi_df,efo_node_df)
     # run zooma
-    run_zooma()
+    run_zooma(ebi_df)
     filter_zooma(efo_nx,ebi_df)
     # filter pairwise data
     for m in modelData:
         filter_paiwise_file(model_name=m['name'])
-        get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx)
+        get_top_using_pairwise_file(model_name=m['name'],top_num=100,efo_nx=efo_nx,ebi_df=ebi_df)
     # filter BERT-EFO results
-    filter_bert()
+    filter_bert(ebi_df=ebi_df,efo_node_df=efo_node_df)
     # create summary weighted average plots
     run_wa(mapping_types=['Exact','Broad','Narrow'],mapping_name='all',ebi_df=ebi_df)
     run_wa(mapping_types=['Exact'],mapping_name='exact',ebi_df=ebi_df)
@@ -781,5 +754,5 @@ def dev():
     run_levenshtein(ebi_df,efo_node_df)
 
 if __name__ == "__main__":
-    #run()
-    dev()
+    run()
+    #dev()

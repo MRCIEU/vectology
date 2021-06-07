@@ -7,8 +7,8 @@ import re
 import os 
 import gzip
 import timeit
+import Levenshtein
 import matplotlib.pyplot as plt
-import difflib
 from sklearn.manifold import TSNE
 from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo
 from loguru import logger
@@ -39,7 +39,7 @@ modelData = [
     {'name':'Spacy','model':'en_core_web_lg','col':cols[5]},
     {'name':'SciSpacy','model':'en_core_sci_lg','col':cols[6]},
     {'name':'Zooma','model':'Zooma','col':cols[7]},
-    {'name':'SequenceMatcher','model':'SequenceMatcher','col':cols[8]},
+    {'name':'Levenshtein','model':'Levenshtein','col':cols[8]},
 ]
 palette = {}
 for m in modelData:
@@ -229,8 +229,8 @@ def create_pairwise(ebi_all,ebi_filt):
             #print(len(dd[0]))
             write_to_file(model_name=name,pairwise_data=dd,ebi_df_all=ebi_all,ebi_df_filt=ebi_filt)
 
-def create_pairwise_sequence_matcher(ebi_df_filt):
-    f = f'{output}/SequenceMatcher-ebi-query-pairwise.tsv.gz'
+def create_pairwise_levenshtein(ebi_df_filt):
+    f = f'{output}/Levenshtein-ebi-query-pairwise.tsv.gz'
     if os.path.exists(f):
         logger.info(f'{f} done')
     else:
@@ -239,7 +239,7 @@ def create_pairwise_sequence_matcher(ebi_df_filt):
         for i in range(0,len(ebi_df_filt_dic)):
             for j in range(i,len(ebi_df_filt_dic)):
                 if i != j:
-                    distance = difflib.SequenceMatcher(None, ebi_df_filt_dic[i]['query'], ebi_df_filt_dic[j]['query']).ratio()
+                    distance =  Levenshtein.ratio(ebi_df_filt_dic[i]['query'], ebi_df_filt_dic[j]['query'])
                     d.append({'q1':ebi_df_filt_dic[i]['query'],'q2':ebi_df_filt_dic[j]['query'],'m1':ebi_df_filt_dic[i]['mapping_id'],'m2':ebi_df_filt_dic[j]['mapping_id'],'score':distance})
         df = pd.DataFrame(d)
         print(df.shape)
@@ -462,7 +462,7 @@ def run_all():
     ebi_all,ebi_filt = read_ebi()
     create_pairwise(ebi_all,ebi_filt)
     create_pairwise_bert_efo(ebi_filt)
-    create_pairwise_sequence_matcher(ebi_filt)
+    create_pairwise_levenshtein(ebi_filt)
     com_scores()
     sample_checks()
 
@@ -473,7 +473,7 @@ def dev():
     #create_aaa()
     #create_pairwise(ebi_all,ebi_filt)
     #create_pairwise_bert_efo(ebi_filt)
-    #create_pairwise_sequence_matcher(ebi_filt)
+    #create_pairwise_levenshtein(ebi_filt)
     #com_scores()
     sample_checks()
 
