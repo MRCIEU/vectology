@@ -23,8 +23,8 @@ sns.set_theme()
 
 # globals
 ebi_data = 'data/UK_Biobank_master_file.tsv'
-efo_nodes = 'data/efo_nodes.csv'
-efo_rels = 'data/efo_edges.csv'
+efo_rels_v1 = 'data/epigraphdb_efo_rels.csv'
+efo_rels_v2 = 'data/efo_edges.csv'
 nxontology_measure = 'batet'
 top_x = 100
 
@@ -46,16 +46,17 @@ for m in modelData:
     palette[m['name']]=m['col']
     
 output='output/trait-trait-v1'
-output='output/trait-efo-v1'
 Path(output).mkdir(parents=True, exist_ok=True)
+Path(f'{output}/images').mkdir(parents=True, exist_ok=True)
 
 tSNE=TSNE(n_components=2)
 
-#create nxontology network of EFO relationships
+# create an nxontology instance for EFO hierarchy
 def create_nx():
-    logger.info('Creating nx')
-    efo_rel_df=pd.read_csv(efo_rels)
-    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='sub',parent_col='obj')
+    #create nxontology network of EFO relationships
+    logger.info('Creating nx...')
+    efo_rel_df=pd.read_csv(efo_rels_v1)
+    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='efo.id',parent_col='parent_efo.id')
     efo_nx.freeze()
     return efo_nx
 
@@ -288,7 +289,6 @@ def com_scores():
             df = pd.read_csv(f,sep='\t')
             logger.info(f'\n{df.head()}')
             logger.info(df.shape)
-            com_scores[name]=df['score']
             com_scores = pd.merge(com_scores,df[['m1','m2','score']],left_on=['m1','m2'],right_on=['m1','m2'])
             com_scores.rename(columns={'score':name},inplace=True)
             logger.info(f'\n{com_scores.head()}')
@@ -398,7 +398,6 @@ def manual_samples():
         'heart/cardiac problem',
         'sleep apnoea',
         'high cholesterol',
-        'Daytime dozing / sleeping (narcolepsy)',
         'heart valve problem/heart murmur',
         'other renal/kidney problem',
         'colitis/not crohns or ulcerative colitis'
@@ -455,11 +454,11 @@ def sample_checks():
     run_mantel(term)
 
 def run_all():
-    #efo_nx = create_nx()
-    #create_nx_pairs_nr(ebi_df,efo_nx)
-    create_nx_pairs(ebi_filt,efo_nx)
-    create_aaa()
+    efo_nx = create_nx()
     ebi_all,ebi_filt = read_ebi()
+    #create_nx_pairs_nr(ebi_df,efo_nx)
+    create_nx_pairs_nr(ebi_filt,efo_nx)
+    create_aaa()
     create_pairwise(ebi_all,ebi_filt)
     create_pairwise_bert_efo(ebi_filt)
     create_pairwise_levenshtein(ebi_filt)
@@ -478,5 +477,5 @@ def dev():
     sample_checks()
 
 if __name__ == "__main__":
-    dev()
-    #run_all()
+    #dev()
+    run_all()

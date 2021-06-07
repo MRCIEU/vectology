@@ -523,29 +523,32 @@ def calc_weighted_average(model_name,top_num,mapping_types,ebi_df):
 def run_wa(mapping_types,mapping_name,ebi_df):
     top_nums=[1,2,5,10,20,50,100]
     for top_num in top_nums:
-        all_res = {}
-        for m in modelData:
-            if top_num > 1 and m['name'] == 'Zooma':
-                print('No data for Zooma')
-                continue
-            else:
-                res = calc_weighted_average(m['name'],top_num,mapping_types,ebi_df)
-                if res is not None:
-                    all_res[m['name']]=res
+        f = f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png"
+        if os.path.exists(f):
+            logger.info(f'{f} done')
+        else:
+            all_res = {}
+            for m in modelData:
+                if top_num > 1 and m['name'] == 'Zooma':
+                    print('No data for Zooma')
+                    continue
+                else:
+                    res = calc_weighted_average(m['name'],top_num,mapping_types,ebi_df)
+                    if res is not None:
+                        all_res[m['name']]=res
 
-        df = pd.DataFrame(all_res)
-        df['efo'] = ebi_df['full_id']
-        #print(df.head())
-        df_melt = pd.melt(df, id_vars=['efo'])
-        df_melt.rename(columns={'variable':'Model'},inplace=True)
-        #print(df_melt.head())
-        #ax = sns.displot(x="value", hue="Model", data=df_melt, kind='kde', cut=0, palette=palette, height=6, cumulative=True,common_norm=False)
-        ax = sns.displot(x="value", hue="Model", data=df_melt, kind='kde', cut=0, palette=palette, height=6,common_norm=True)
-        #sns_plot = sns.displot(ebi_df, x=f"{model}-nx",kde=True)
-        ax.set(xlabel=f'Weighted average of nx', ylabel='Density')
-        #ax.set_xscale("log")
-        ax.savefig(f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png",dpi=1000)
-        #ax.close()
+            df = pd.DataFrame(all_res)
+            df['efo'] = ebi_df['full_id']
+            #print(df.head())
+            df_melt = pd.melt(df, id_vars=['efo'])
+            df_melt.rename(columns={'variable':'Model'},inplace=True)
+            #print(df_melt.head())
+            #ax = sns.displot(x="value", hue="Model", data=df_melt, kind='kde', cut=0, palette=palette, height=6, cumulative=True,common_norm=False)
+            ax = sns.displot(x="value", hue="Model", data=df_melt, kind='kde', cut=0, palette=palette, height=6,common_norm=True)
+            #sns_plot = sns.displot(ebi_df, x=f"{model}-nx",kde=True)
+            ax.set(xlabel=f'Weighted average of nx', ylabel='Density')
+            #ax.set_xscale("log")
+            ax.savefig(f,dpi=1000)
 
 # create plot of number of correct top predictions for each model
 def get_top_hits(ebi_df):
@@ -744,7 +747,7 @@ def run():
     # create summary tophits plot
     get_top_hits(ebi_df)
     # create high/low/spread tables
-    create_examples()
+    create_examples(efo_node_df)
 
 def dev():
     efo_node_df = efo_node_data_v1()
