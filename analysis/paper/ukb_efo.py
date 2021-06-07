@@ -14,6 +14,7 @@ import spacy
 import difflib
 from scripts.vectology_functions import create_aaa_distances, create_pair_distances, embed_text, encode_traits, create_efo_nxo, create_efo_data
 from loguru import logger
+from pathlib import Path
 
 import seaborn as sns
 
@@ -22,8 +23,10 @@ sns.set_theme()
 
 # globals
 ebi_data = 'data/UK_Biobank_master_file.tsv'
-efo_nodes = 'data/efo_nodes.csv'
-efo_rels = 'data/efo_edges.csv'
+efo_nodes_v1 = 'data/epigraphdb_efo_nodes.csv'
+efo_rels_v1 = 'data/epigraphdb_efo_rels.csv'
+efo_nodes_v2 = 'data/efo_nodes.csv'
+efo_rels_v2 = 'data/efo_edges.csv'
 nxontology_measure = 'batet'
 top_x = 100
 
@@ -45,8 +48,8 @@ for m in modelData:
     palette[m['name']]=m['col']
 
 # set up an output directory
-output='output/trait-efo'
-
+output='output/trait-efo-v1'
+Path(output).mkdir(parents=True, exist_ok=True)
 
 # get the UKB EFO mappings and EFO data
 def get_data():
@@ -63,12 +66,23 @@ def get_data():
         edge_df.to_csv(efo_rels,index=False)
 
 # read EFO node data
-def efo_node_data():
+def efo_node_data_v2():
     # get EFO node data
     df = pd.read_csv(efo_nodes)
     df.rename(columns={'lbl':'efo_label','id':'efo_id'},inplace=True)
     #drop type
     df.drop(['definition','umls'],inplace=True,axis=1)
+    df.drop_duplicates(inplace=True)
+    logger.info(f'\n{df}')
+    logger.info({df.shape})
+    return df
+
+def efo_node_data_v1():
+    # get EFO node data
+    df = pd.read_csv(efo_nodes_v1)
+    df.rename(columns={'efo.value':'efo_label','efo.id':'efo_id'},inplace=True)
+    #drop type
+    df.drop(['efo.type'],inplace=True,axis=1)
     df.drop_duplicates(inplace=True)
     logger.info(f'\n{df}')
     logger.info({df.shape})
@@ -282,8 +296,8 @@ def run_seq_matcher(ebi_df,efo_node_df):
 def create_nx():
     #create nxontology network of EFO relationships
     logger.info('Creating nx...')
-    efo_rel_df=pd.read_csv(efo_rels)
-    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='sub',parent_col='obj')
+    efo_rel_df=pd.read_csv(efo_rels_v1)
+    efo_nx = create_efo_nxo(df=efo_rel_df,child_col='efo.id',parent_col='parent_efo.id')
     efo_nx.freeze()
     return efo_nx
 
@@ -402,7 +416,7 @@ def filter_zooma(efo_nx,ebi_df):
     df.to_csv(f'{output}/Zooma-pairwise-filter.tsv.gz',sep='\t',index=False,compression='gzip')
     #sns.displot(df, x="score",kde=True)
 
-# create filtered pairwsise data 
+# create filtered pairwise data 
 def filter_paiwise_file(model_name):
     logger.info(f'filter_pairwise_file {model_name}')
     f = f"{output}/{model_name}-pairwise-filter.tsv.gz"
@@ -697,7 +711,7 @@ def create_examples(efo_node_df):
 
 def run():
     # get efo node data
-    efo_node_df = efo_node_data()
+    efo_node_df = efo_node_data_v1()
     # get ebi efo data
     ebi_df = get_ebi_data(efo_node_df)
     # create embeddings for ebi using vectology models
@@ -734,7 +748,7 @@ def run():
     create_examples()
 
 def dev():
-    get_data()
+    efo_node_df = efo_node_data_v1()
 
 if __name__ == "__main__":
-    dev()
+    run()

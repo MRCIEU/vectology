@@ -14,6 +14,7 @@ from scripts.vectology_functions import create_aaa_distances, create_pair_distan
 from loguru import logger
 from pandas_profiling import ProfileReport
 from skbio.stats.distance import mantel
+from pathlib import Path
 
 import seaborn as sns
 
@@ -44,7 +45,9 @@ palette = {}
 for m in modelData:
     palette[m['name']]=m['col']
     
-output='output/trait-trait'
+output='output/trait-trait-v1'
+output='output/trait-efo-v1'
+Path(output).mkdir(parents=True, exist_ok=True)
 
 tSNE=TSNE(n_components=2)
 
@@ -275,7 +278,7 @@ def com_scores():
     com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
     com_scores.rename(columns={'score':'nx'},inplace=True)
     logger.info(com_scores.shape)
-    #print(com_scores.head())
+    logger.info(f'\n{com_scores.head()}')
     # add the distances
     for m in modelData:
         name = m['name']
@@ -283,8 +286,12 @@ def com_scores():
         if os.path.exists(f):
             logger.info(name)
             df = pd.read_csv(f,sep='\t')
+            logger.info(f'\n{df.head()}')
             logger.info(df.shape)
             com_scores[name]=df['score']
+            com_scores = pd.merge(com_scores,df[['m1','m2','score']],left_on=['m1','m2'],right_on=['m1','m2'])
+            com_scores.rename(columns={'score':name},inplace=True)
+            logger.info(f'\n{com_scores.head()}')
     logger.info(com_scores.shape)
     logger.info(com_scores.head())
     logger.info(com_scores.describe())
@@ -467,8 +474,8 @@ def dev():
     #create_pairwise(ebi_all,ebi_filt)
     #create_pairwise_bert_efo(ebi_filt)
     #create_pairwise_sequence_matcher(ebi_filt)
-    com_scores()
-    #sample_checks()
+    #com_scores()
+    sample_checks()
 
 if __name__ == "__main__":
     dev()
