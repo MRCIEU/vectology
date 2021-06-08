@@ -524,6 +524,9 @@ def filter_paiwise_file(model_name):
 # read BLUEBERT-EFO data and filter
 def filter_bert(ebi_df, efo_node_df):
     df = pd.read_csv(f"data/efo_mk1_inference_top100_no_underscores.csv.gz")
+    # lowercase
+    df['text_1'] = df['text_1'].str.lower()
+    df['text_2'] = df['text_2'].str.lower()
     df_top = df.sort_values(by=["score"]).groupby("text_1").head(top_x)
     df_top = pd.merge(
         df_top,
@@ -891,18 +894,17 @@ def run():
     efo_nx = create_nx()
     # run pairwise cosine distance
     create_pair_data(ebi_df, efo_node_df)
-    exit()
     # run zooma
     run_zooma(ebi_df)
     filter_zooma(efo_nx, ebi_df)
+    # filter BERT-EFO results
+    filter_bert(ebi_df=ebi_df, efo_node_df=efo_node_df)
     # filter pairwise data
     for m in modelData:
         filter_paiwise_file(model_name=m["name"])
         get_top_using_pairwise_file(
             model_name=m["name"], top_num=100, efo_nx=efo_nx, ebi_df=ebi_df
         )
-    # filter BERT-EFO results
-    filter_bert(ebi_df=ebi_df, efo_node_df=efo_node_df)
     # create summary weighted average plots
     run_wa(
         mapping_types=["Exact", "Broad", "Narrow"], mapping_name="all", ebi_df=ebi_df
@@ -919,12 +921,6 @@ def run():
 
 def dev():
     efo_node_df = efo_node_data_v1()
-    # get ebi efo data
-    ebi_df = get_ebi_data(efo_node_df)
-    # run_seq_matcher(ebi_df,efo_node_df)
-    # run_levenshtein(ebi_df,efo_node_df)
-    # create_examples(efo_node_df)
-
 
 if __name__ == "__main__":
     run()
