@@ -374,10 +374,9 @@ def write_to_file(model_name, pairwise_data, ebi_df, efo_node_df):
     if os.path.exists(f):
         logger.info(f"Already done {f}")
     else:
-        fo = gzip.open(f, "w")
-        fo.write("mapping_id\tmanual\tprediction\tscore\n".encode("utf-8"))
         ebi_efo_list = list(ebi_df["full_id"])
         efo_list = list(efo_node_df["efo_id"])
+        d = []
         for i in range(0, len(ebi_efo_list)):
             if i % 100 == 0:
                 logger.info(i)
@@ -386,12 +385,17 @@ def write_to_file(model_name, pairwise_data, ebi_df, efo_node_df):
             for j in range(i, len(efo_list)):
                 # if i != j:
                 score = 1 - pairwise_data[i][j]
-                fo.write(
-                    f"{i+1}\t{ebi_efo_list[i]}\t{efo_list[j]}\t{score}\n".encode(
-                        "utf-8"
-                    )
+                d.append(
+                    {
+                    'mapping_id':i+1,
+                    'manual':ebi_efo_list[i],
+                    'prediction':efo_list[j],
+                    'score':score
+                    }
                 )
                 mCount += 1
+        df = pd.DataFrame(d)
+        df.to_csv(f,sep='\t',index=False)
 
 
 # wrapper for above
@@ -887,6 +891,7 @@ def run():
     efo_nx = create_nx()
     # run pairwise cosine distance
     create_pair_data(ebi_df, efo_node_df)
+    exit()
     # run zooma
     run_zooma(ebi_df)
     filter_zooma(efo_nx, ebi_df)

@@ -210,9 +210,6 @@ def write_to_file(model_name, pairwise_data, ebi_df_all, ebi_df_filt):
     else:
         dedup_id_list = list(ebi_df_filt["mapping_id"])
         dedup_query_list = list(ebi_df_filt["query"])
-        dedup_query_list = list(ebi_df_filt["query"])
-        # fo = gzip.open(f,'w')
-        # fo.write("q1\tefo1\tq2\tefo2\tscore\n".encode('utf-8'))
         ebi_list = list(ebi_df_all["mapping_id"])
         for i in range(0, len(ebi_list)):
             if i % 100 == 0:
