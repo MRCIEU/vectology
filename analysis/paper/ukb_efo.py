@@ -59,7 +59,7 @@ for m in modelData:
     palette[m["name"]] = m["col"]
 
 # set up an output directory
-output = "output/trait-efo-v1"
+output = "output/trait-efo-v1-lowercase"
 Path(output).mkdir(parents=True, exist_ok=True)
 Path(f"{output}/images").mkdir(parents=True, exist_ok=True)
 
@@ -89,6 +89,8 @@ def efo_node_data_v2():
     df.rename(columns={"lbl": "efo_label", "id": "efo_id"}, inplace=True)
     # drop type
     df.drop(["definition", "umls"], inplace=True, axis=1)
+    # lowercase the label
+    df['efo_label'] = df['efo_label'].str.lower()
     df.drop_duplicates(inplace=True)
     logger.info(f"\n{df}")
     logger.info({df.shape})
@@ -101,6 +103,8 @@ def efo_node_data_v1():
     df.rename(columns={"efo.value": "efo_label", "efo.id": "efo_id"}, inplace=True)
     # drop type
     df.drop(["efo.type"], inplace=True, axis=1)
+    # lowercase the label
+    df['efo_label'] = df['efo_label'].str.lower()
     df.drop_duplicates(inplace=True)
     logger.info(f"\n{df}")
     logger.info({df.shape})
@@ -132,8 +136,9 @@ def get_ebi_data(efo_node_df):
         ebi_df = ebi_df[~ebi_df["MAPPED_TERM_URI"].str.contains("\|", na=False)]
         logger.info(ebi_df.shape)
 
-        # clean up
+        # clean up and lowercase
         ebi_df["id"] = ebi_df["MAPPED_TERM_URI"].str.strip()
+        ebi_df["query"] = ebi_df["query"].str.lower()
 
         # remove underscores
         ebi_df["query"] = ebi_df["query"].str.replace("_", " ")
@@ -917,5 +922,5 @@ def dev():
 
 
 if __name__ == "__main__":
-    # run()
-    dev()
+    run()
+    #dev()
