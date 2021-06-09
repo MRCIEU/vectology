@@ -286,6 +286,8 @@ def create_pairwise_bert_efo(ebi_df):
         logger.info(f"{f} done")
     else:
         be_df = pd.read_csv(f"data/BLUEBERT-EFO-ebi-query-pairwise.csv.gz")
+        be_df['text_1'] = be_df['text_1'].str.lower()
+        be_df['text_2'] = be_df['text_2'].str.lower()
         be_df.rename(columns={"text_1": "q1", "text_2": "q2"}, inplace=True)
         dedup_query_list = list(ebi_df["query"])
         be_df = be_df[
@@ -311,10 +313,10 @@ def create_pairwise_bert_efo(ebi_df):
 def com_scores():
     # create df of scores
     # com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
-    com_scores = pd.read_csv(f"{output}/nx-ebi-pairs-nr.tsv.gz", sep="\t")
-    com_scores.rename(columns={"score": "nx"}, inplace=True)
-    logger.info(com_scores.shape)
-    logger.info(f"\n{com_scores.head()}")
+    com_scores_df = pd.read_csv(f"{output}/nx-ebi-pairs-nr.tsv.gz", sep="\t")
+    com_scores_df.rename(columns={"score": "nx"}, inplace=True)
+    logger.info(com_scores_df.shape)
+    logger.info(f"\n{com_scores_df.head()}")
     # add the distances
     for m in modelData:
         name = m["name"]
@@ -324,29 +326,29 @@ def com_scores():
             df = pd.read_csv(f, sep="\t")
             logger.info(f"\n{df.head()}")
             logger.info(df.shape)
-            com_scores = pd.merge(
-                com_scores,
+            com_scores_df = pd.merge(
+                com_scores_df,
                 df[["m1", "m2", "score"]],
                 left_on=["m1", "m2"],
                 right_on=["m1", "m2"],
             )
-            com_scores.rename(columns={"score": name}, inplace=True)
-            logger.info(f"\n{com_scores.head()}")
-    logger.info(com_scores.shape)
-    logger.info(com_scores.head())
-    logger.info(com_scores.describe())
+            com_scores_df.rename(columns={"score": name}, inplace=True)
+            logger.info(f"\n{com_scores_df.head()}")
+    logger.info(com_scores_df.shape)
+    logger.info(com_scores_df.head())
+    logger.info(com_scores_df.describe())
 
     # drop pairs that have a missing score?
-    com_scores.dropna(inplace=True)
+    com_scores_df.dropna(inplace=True)
     # or replace with 0?
     # com_scores.fillna(0,inplace=True)
+    logger.info(com_scores_df.describe())
+    logger.info(com_scores_df.shape)
+    com_scores_df.to_csv(f"{output}/com_scores.tsv.gz", sep="\t", index=False)
 
-    logger.info(com_scores.shape)
-    com_scores.to_csv(f"{output}/com_scores.tsv.gz", sep="\t", index=False)
-
-    com_scores.drop(["m1", "m2", "e1", "e2", "q1", "q2"], axis=1, inplace=True)
-    pearson = com_scores.corr(method="pearson")
-    spearman = com_scores.corr(method="spearman")
+    com_scores_df.drop(["m1", "m2", "e1", "e2", "q1", "q2"], axis=1, inplace=True)
+    pearson = com_scores_df.corr(method="pearson")
+    spearman = com_scores_df.corr(method="spearman")
     logger.info(f"\n{pearson}")
     ax = sns.clustermap(spearman)
     ax.savefig(f"{output}/images/spearman.png", dpi=1000)
@@ -358,13 +360,14 @@ def compare_models_with_sample(sample, term):
     models = [x["name"] for x in modelData]
     models.remove("Zooma")
     models.append("nx")
-    com_scores = pd.read_csv(f"{output}/com_scores.tsv.gz", sep="\t")
+    com_scores_df = pd.read_csv(f"{output}/com_scores.tsv.gz", sep="\t")
     for model in models:
         logger.info(f"Running {model}")
-        com_sample = com_scores[
-            com_scores["q1"].isin(sample) & com_scores["q2"].isin(sample)
+        com_sample = com_scores_df[
+            com_scores_df["q1"].isin(sample) & com_scores_df["q2"].isin(sample)
         ][["q1", "q2", model]]
-        # add matching pair
+        logger.info(f'\n{com_sample}')
+        # add matching pair with score 1
         for i in sample:
             df = pd.DataFrame([[i, i, 1]], columns=["q1", "q2", model])
             com_sample = com_sample.append(df)
@@ -377,10 +380,14 @@ def compare_models_with_sample(sample, term):
             com_sample = com_sample.append(df)
             # logger.info(com_sample.shape)
         com_sample.drop_duplicates(inplace=True)
-        # com_sample['q1']=com_sample['q1'].str[-100:]
-        # com_sample['q2']=com_sample['q2'].str[-100:]
-        logger.info(f"\n{com_sample}")
+        #logger.info(f"\n{com_sample}")
         com_sample = com_sample.pivot(index="q1", columns="q2", values=model)
+        # check for missing data
+        missing = com_sample[com_sample.isna().any(axis=1)]
+        logger.info(missing.shape)
+        logger.info(missing.columns)
+        logger.info(f'\n{missing}')
+     
         com_sample = com_sample.fillna(1)
 
         # 1 minus to work with mantel
@@ -392,17 +399,14 @@ def compare_models_with_sample(sample, term):
         sns.clustermap(com_sample, cmap="coolwarm")
         plt.savefig(f"{output}/images/sample-clustermap-{model}-{term}.png", dpi=1000)
         plt.close()
-        # ax=sns.clustermap(t)
-        # ax.savefig(f"{output}/sample.pdf")
 
 
 def create_random_queries():
     ran_num = 25
-    com_scores = pd.read_csv(f"{output}/com_scores.tsv.gz", sep="\t")
-    logger.info(com_scores.head())
-    sample = list(com_scores["q1"].sample(n=ran_num, random_state=3))
+    com_scores_df = pd.read_csv(f"{output}/com_scores.tsv.gz", sep="\t")
+    logger.info(com_scores_df.head())
+    sample = list(com_scores_df["q1"].sample(n=ran_num, random_state=3))
     logger.info(sample)
-    sample = [x.lower() for x in sample]
     return sample
 
 
@@ -414,7 +418,6 @@ def term_sample(term):
     logger.info(f"\n{df.head()}")
 
     sample = list(df["query"])[:30]
-    sample = [x.lower() for x in sample]
     return sample
 
 
@@ -478,15 +481,15 @@ def run_mantel(term):
 
 def sample_checks():
 
-    # term = "neoplasm"
-    # sample = term_sample(term=term)
-    # compare_models_with_sample(sample=sample, term=term)
-    # run_mantel(term)
+    term = "neoplasm"
+    sample = term_sample(term=term)
+    compare_models_with_sample(sample=sample, term=term)
+    run_mantel(term)
 
-    # term = "random"
-    # sample = create_random_queries()
-    # compare_models_with_sample(sample=sample, term=term)
-    # run_mantel(term)
+    term = "random"
+    compare_models_with_sample(sample=sample, term=term)
+    sample = create_random_queries()
+    run_mantel(term)
 
     term = "manual"
     sample = manual_samples()
@@ -509,16 +512,16 @@ def run_all():
 
 def dev():
     # efo_nx = create_nx()
-    # ebi_all,ebi_filt = read_ebi()
+    ebi_all,ebi_filt = read_ebi()
     # create_nx_pairs_nr(ebi_filt,efo_nx)
     # create_aaa()
     # create_pairwise(ebi_all,ebi_filt)
     # create_pairwise_bert_efo(ebi_filt)
     # create_pairwise_levenshtein(ebi_filt)
-    # com_scores()
-    sample_checks()
+    #com_scores()
+    #sample_checks()
 
 
 if __name__ == "__main__":
-    # dev()
+    #dev()
     run_all()
