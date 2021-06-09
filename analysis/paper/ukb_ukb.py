@@ -9,7 +9,6 @@ import gzip
 import timeit
 import Levenshtein
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 from scripts.vectology_functions import (
     create_aaa_distances,
     create_pair_distances,
@@ -59,8 +58,6 @@ output = "output/trait-trait-v1-lowercase"
 Path(output).mkdir(parents=True, exist_ok=True)
 Path(f"{output}/images").mkdir(parents=True, exist_ok=True)
 
-tSNE = TSNE(n_components=2)
-
 # create an nxontology instance for EFO hierarchy
 def create_nx():
     # create nxontology network of EFO relationships
@@ -71,7 +68,6 @@ def create_nx():
     )
     efo_nx.freeze()
     return efo_nx
-
 
 def read_ebi():
     # read cleaned EBI data
@@ -96,10 +92,10 @@ def read_ebi():
 
 def create_nx_pairs(ebi_df_dedup, efo_nx):
     # create nx score for each full_id
-    print(ebi_df_dedup.shape)
+    logger.info(ebi_df_dedup.shape)
     f = f"{output}/nx-ebi-pairs.tsv.gz"
     if os.path.exists(f):
-        print("nx for ebi done")
+        logger.info("nx for ebi done")
     else:
         data = []
         counter = 0
@@ -109,7 +105,7 @@ def create_nx_pairs(ebi_df_dedup, efo_nx):
             e1 = row1["full_id"]
             q1 = row1["query"]
             if counter % 100 == 0:
-                print(counter)
+                logger.info(counter)
             for j, row2 in ebi_df_dedup.iterrows():
                 m2 = row2["mapping_id"]
                 e2 = row2["full_id"]
@@ -117,7 +113,6 @@ def create_nx_pairs(ebi_df_dedup, efo_nx):
                 # if e1 != e2:
                 res = similarity = efo_nx.similarity(e1, e2).results()
                 nx_val = res[nxontology_measure]
-                # print(i,e1,e2,nx_val)
                 data.append(
                     {
                         "m1": m1,
@@ -130,18 +125,18 @@ def create_nx_pairs(ebi_df_dedup, efo_nx):
                     }
                 )
             counter += 1
-        print(counter)
+        logger.info(counter)
         df = pd.DataFrame(data)
         df.to_csv(f, sep="\t", index=False)
-    print("Done")
+    logger.info("Done")
 
 
 def create_nx_pairs_nr(ebi_df, efo_nx):
     # create nx score for each full_id (non-redundant)
-    print(ebi_df.shape)
+    logger.info(ebi_df.shape)
     f = f"{output}/nx-ebi-pairs-nr.tsv.gz"
     if os.path.exists(f):
-        print("nx for ebi done")
+        logger.info("nx for ebi done")
     else:
         data = []
         counter = 0
@@ -162,7 +157,6 @@ def create_nx_pairs_nr(ebi_df, efo_nx):
                 if e1 != e2:
                     res = similarity = efo_nx.similarity(e1, e2).results()
                     nx_val = res[nxontology_measure]
-                    # print(i,e1,e2,nx_val)
                     data.append(
                         {
                             "m1": m1,
@@ -191,43 +185,38 @@ def create_aaa():
             logger.info(f"{name} done")
         else:
             if os.path.exists(f1):
-                print(m)
+                logger.info(m)
                 dd = np.load(f1)
-                print(len(dd))
+                logger.info(len(dd))
                 aaa = create_aaa_distances(dd)
                 np.save(f2, aaa)
-                # print(len(aaa))
             else:
-                print(f1, "does not exist")
+                logger.info(f'{f1} does not exist')
 
 
 def write_to_file(model_name, pairwise_data, ebi_df_all, ebi_df_filt):
-    print("writing", model_name)
+    logger.info(f"writing {model_name}")
     d = []
     f = f"{output}/{model_name}-ebi-query-pairwise.tsv.gz"
     if os.path.exists(f):
-        print("Already done", f)
+        logger.info(f"Already done {f}")
     else:
         dedup_id_list = list(ebi_df_filt["mapping_id"])
         dedup_query_list = list(ebi_df_filt["query"])
         ebi_list = list(ebi_df_all["mapping_id"])
         for i in range(0, len(ebi_list)):
             if i % 100 == 0:
-                print(i)
+                logger.info(i)
             # write to file
             for j in range(i, len(ebi_list)):
                 if i != j:
                     if ebi_list[i] in dedup_id_list and ebi_list[j] in dedup_id_list:
                         # if i != j:
-                        # print(pairwise_data[i],pairwise_data[j])
                         score = 1 - pairwise_data[i][j]
 
                         # get matching query names
                         query1 = dedup_query_list[dedup_id_list.index(ebi_list[i])]
                         query2 = dedup_query_list[dedup_id_list.index(ebi_list[j])]
-                        # print(query1,query2)
-
-                        # fo.write(f"{query1}\t{ebi_list[i]}\t{query2}\t{ebi_list[j]}\t{score}\n".encode('utf-8'))
                         d.append(
                             {
                                 "q1": query1,
@@ -238,9 +227,9 @@ def write_to_file(model_name, pairwise_data, ebi_df_all, ebi_df_filt):
                             }
                         )
         df = pd.DataFrame(d)
-        print(df.shape)
+        logger.info(df.shape)
         df.drop_duplicates(subset=["q1", "q2"], inplace=True)
-        print(df.shape)
+        logger.info(df.shape)
         df.to_csv(f, sep="\t", compression="gzip", index=False)
 
 
@@ -253,7 +242,6 @@ def create_pairwise(ebi_all, ebi_filt):
             dd = np.load(f"{output}/{name}-ebi-aaa.npy")
             # a=np.load('output/BioSentVec-ebi-aaa.npy')
             logger.info(len(dd))
-            # print(len(dd[0]))
             write_to_file(
                 model_name=name,
                 pairwise_data=dd,
@@ -285,9 +273,9 @@ def create_pairwise_levenshtein(ebi_df_filt):
                         }
                     )
         df = pd.DataFrame(d)
-        print(df.shape)
+        logger.info(df.shape)
         df.drop_duplicates(subset=["q1", "q2"], inplace=True)
-        print(df.shape)
+        logger.info(df.shape)
         df.to_csv(f, sep="\t", compression="gzip", index=False)
 
 
@@ -379,7 +367,6 @@ def compare_models_with_sample(sample, term):
         # add matching pair
         for i in sample:
             df = pd.DataFrame([[i, i, 1]], columns=["q1", "q2", model])
-            # print(df)
             com_sample = com_sample.append(df)
             # logger.info(com_sample.shape)
         # add bottom half of triangle
@@ -389,13 +376,9 @@ def compare_models_with_sample(sample, term):
             )
             com_sample = com_sample.append(df)
             # logger.info(com_sample.shape)
-        if model == "BLUEBERT-EFO":
-            # com_sample[model]=-1*com_sample[model]
-            logger.info(f"\n{com_sample}")
         com_sample.drop_duplicates(inplace=True)
         # com_sample['q1']=com_sample['q1'].str[-100:]
         # com_sample['q2']=com_sample['q2'].str[-100:]
-        # logger.info(com_sample)
         logger.info(f"\n{com_sample}")
         com_sample = com_sample.pivot(index="q1", columns="q2", values=model)
         com_sample = com_sample.fillna(1)
@@ -419,6 +402,7 @@ def create_random_queries():
     logger.info(com_scores.head())
     sample = list(com_scores["q1"].sample(n=ran_num, random_state=3))
     logger.info(sample)
+    sample = [x.lower() for x in sample]
     return sample
 
 
@@ -430,6 +414,7 @@ def term_sample(term):
     logger.info(f"\n{df.head()}")
 
     sample = list(df["query"])[:30]
+    sample = [x.lower() for x in sample]
     return sample
 
 
@@ -459,6 +444,7 @@ def manual_samples():
         "other renal/kidney problem",
         "colitis/not crohns or ulcerative colitis",
     ]
+    sample = [x.lower() for x in sample]
     return sample
 
 
@@ -492,15 +478,15 @@ def run_mantel(term):
 
 def sample_checks():
 
-    term = "neoplasm"
-    sample = term_sample(term=term)
-    compare_models_with_sample(sample=sample, term=term)
-    run_mantel(term)
+    # term = "neoplasm"
+    # sample = term_sample(term=term)
+    # compare_models_with_sample(sample=sample, term=term)
+    # run_mantel(term)
 
-    term = "random"
-    sample = create_random_queries()
-    compare_models_with_sample(sample=sample, term=term)
-    run_mantel(term)
+    # term = "random"
+    # sample = create_random_queries()
+    # compare_models_with_sample(sample=sample, term=term)
+    # run_mantel(term)
 
     term = "manual"
     sample = manual_samples()

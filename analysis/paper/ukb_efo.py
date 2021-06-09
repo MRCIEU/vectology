@@ -105,7 +105,8 @@ def efo_node_data_v1():
     df.drop(["efo.type"], inplace=True, axis=1)
     # lowercase the label
     df['efo_label'] = df['efo_label'].str.lower()
-    df.drop_duplicates(inplace=True)
+    # drop duplicates by name 
+    df.drop_duplicates(subset=['efo_label'],inplace=True)
     logger.info(f"\n{df}")
     logger.info({df.shape})
     return df
@@ -604,32 +605,27 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
 # calculate weighted average
 def calc_weighted_average(model_name, top_num, mapping_types, ebi_df):
     f = f"{output}/{model_name}-top-100.tsv.gz"
-    print(f)
+    logger.info(f)
     res = []
     try:
         df = pd.read_csv(f, sep="\t")
-        # print(df.head())
     except:
-        print("Data do not exist for", model_name)
+        logger.info(f"Data do not exist for {model_name}")
         return
     manual_efos = list(ebi_df["full_id"])
     for i in range(0, len(manual_efos)):
         manual_efo = manual_efos[i]
         # filter on type
         mapping_type = ebi_df[ebi_df["full_id"] == manual_efo]["MAPPING_TYPE"].values[0]
-        # print(mapping_type)
         if mapping_type in mapping_types:
-            # print(i,manual_efo)
             nx_scores = list(df[df["manual"] == manual_efo].head(n=top_num)["nx"])
             weights = list(reversed(range(1, (len(nx_scores) + 1))))
-            # print(model_name,manual_efo,nx_scores,weights)
             try:
                 weighted_avg = round(np.average(nx_scores, weights=weights), 3)
             except:
                 weighted_avg = 0
             res.append(weighted_avg)
-            # print(nx_scores,weights,weighted_avg)
-    print(len(res))
+    logger.info(len(res))
     return res
 
 
@@ -644,7 +640,7 @@ def run_wa(mapping_types, mapping_name, ebi_df):
             all_res = {}
             for m in modelData:
                 if top_num > 1 and m["name"] == "Zooma":
-                    print("No data for Zooma")
+                    logger.info("No data for Zooma")
                     continue
                 else:
                     res = calc_weighted_average(
@@ -655,11 +651,8 @@ def run_wa(mapping_types, mapping_name, ebi_df):
 
             df = pd.DataFrame(all_res)
             df["efo"] = ebi_df["full_id"]
-            # print(df.head())
             df_melt = pd.melt(df, id_vars=["efo"])
             df_melt.rename(columns={"variable": "Model"}, inplace=True)
-            # print(df_melt.head())
-            # ax = sns.displot(x="value", hue="Model", data=df_melt, kind='kde', cut=0, palette=palette, height=6, cumulative=True,common_norm=False)
             ax = sns.displot(
                 x="value",
                 hue="Model",
@@ -741,7 +734,7 @@ def get_top_hits(ebi_df):
 # spread = high sd nx
 def run_high_low(type: str, ebi_df_exact):
     match = []
-    print(f"\n##### {type} #####")
+    logger.info(f"\n##### {type} #####")
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
@@ -750,7 +743,6 @@ def run_high_low(type: str, ebi_df_exact):
         # df = df[df['mapping_id'].isin(exact_mapping_type)]
         df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
 
-        # print(df.head())
         if type == "low":
             match.extend(list(set(list(df[df["nx"] > 0.5]["mapping_id"]))))
             missing_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
@@ -764,7 +756,6 @@ def run_high_low(type: str, ebi_df_exact):
 
     logger.info(missing_df.shape)
     logger.info(missing_df["MAPPING_TYPE"].value_counts())
-    # print(missing_df[missing_df['MAPPING_TYPE']=='Exact'].head())
 
     # add the top prediction from each model to the missing df
     # note, some of them don't have any matches to top 100 - why is that...???
@@ -816,7 +807,7 @@ def run_high_low(type: str, ebi_df_exact):
         missing_df.sort_values(by="mean-nx", ascending=False, inplace=True)
     elif type == "low":
         missing_df.sort_values(by="mean-nx", ascending=True, inplace=True)
-    print(missing_df.head())
+    logger.info(missing_df.head())
     missing_df.to_csv(f"{output}/{type}-predictions.tsv", sep="\t", index=False)
 
 
@@ -944,5 +935,5 @@ def dev():
     get_top_hits(ebi_df)
 
 if __name__ == "__main__":
-    #run()
-    dev()
+    run()
+    #dev()
