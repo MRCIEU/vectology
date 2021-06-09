@@ -487,8 +487,8 @@ def sample_checks():
     run_mantel(term)
 
     term = "random"
-    compare_models_with_sample(sample=sample, term=term)
     sample = create_random_queries()
+    compare_models_with_sample(sample=sample, term=term)
     run_mantel(term)
 
     term = "manual"
