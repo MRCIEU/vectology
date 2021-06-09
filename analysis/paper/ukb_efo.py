@@ -684,6 +684,7 @@ def get_top_hits(ebi_df):
 
     res = []
     # add totals
+    ebi_df.loc[~ebi_df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
     d = dict(ebi_df["MAPPING_TYPE"].value_counts())
     d["Model"] = "Total"
     d["Total"] = ebi_df.shape[0]
@@ -693,7 +694,6 @@ def get_top_hits(ebi_df):
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
         df = pd.read_csv(fName, sep="\t")
-
         df = pd.merge(
             df,
             ebi_df[["mapping_id", "MAPPING_TYPE"]],
@@ -702,8 +702,12 @@ def get_top_hits(ebi_df):
         )
         df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
 
+        # add "Other" MAPPING_TYPE
+        df.loc[~df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
+        logger.info(f'\n{df.columns}')
+
         # filter by mapping_type
-        df = df[df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"])]
+        #df = df[df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow","Other"])]
         d = dict(df[df["nx"] == 1]["MAPPING_TYPE"].value_counts())
         d["Model"] = i["name"]
         d["Total"] = df[df["nx"] == 1].shape[0]
@@ -712,7 +716,7 @@ def get_top_hits(ebi_df):
     #logger.info(res)
     res_df = pd.DataFrame(res).sort_values(by="Total", ascending=False)
     logger.info(res_df)
-    ax = res_df[["Exact", "Broad", "Narrow", "Model"]].plot.bar(
+    ax = res_df[["Exact", "Broad", "Narrow", "Other", "Model"]].plot.bar(
         stacked=True, figsize=(10, 10)
     )
     ax.set_xticklabels(res_df["Model"], rotation=45, ha="right")
