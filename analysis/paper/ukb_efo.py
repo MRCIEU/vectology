@@ -682,9 +682,13 @@ def get_top_hits(ebi_df):
     # to do
     # - statify by mapping_type
 
-    ebi_df_exact = ebi_df[ebi_df["MAPPING_TYPE"] == "Exact"]
-
     res = []
+    # add totals
+    d = dict(ebi_df["MAPPING_TYPE"].value_counts())
+    d["Model"] = "Total"
+    d["Total"] = ebi_df.shape[0]
+    res.append(d)
+    logger.info(res)
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
@@ -705,13 +709,24 @@ def get_top_hits(ebi_df):
         d["Total"] = df[df["nx"] == 1].shape[0]
         res.append(d)
 
-    logger.info(res)
+    #logger.info(res)
     res_df = pd.DataFrame(res).sort_values(by="Total", ascending=False)
     logger.info(res_df)
     ax = res_df[["Exact", "Broad", "Narrow", "Model"]].plot.bar(
-        stacked=True, figsize=(8, 8)
+        stacked=True, figsize=(10, 10)
     )
     ax.set_xticklabels(res_df["Model"], rotation=45, ha="right")
+    
+    # add totals
+    totals = list(res_df['Total'])
+    logger.info(totals)
+    # Set an offset that is used to bump the label up a bit above the bar.
+    y_offset = 4
+    # Add labels to each bar.
+    for i, total in enumerate(totals):
+        logger.info(f'{i} {total}')
+        ax.text(i, total + y_offset, round(total), ha='center',weight='bold')
+    
     fig = ax.get_figure()
     fig.savefig(f"{output}/images/top-counts-by-type.png", dpi=1000)
 
@@ -921,7 +936,9 @@ def run():
 
 def dev():
     efo_node_df = efo_node_data_v1()
+    ebi_df = get_ebi_data(efo_node_df)
+    get_top_hits(ebi_df)
 
 if __name__ == "__main__":
-    run()
-    #dev()
+    #run()
+    dev()

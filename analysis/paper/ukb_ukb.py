@@ -29,7 +29,7 @@ sns.set_theme()
 
 # globals
 ebi_data = "data/UK_Biobank_master_file.tsv"
-efo_rels_v1 = "data/efo_rels_2021_02_01.csv"
+efo_rels_v1 = "data/efo_edges_2021_02_01.csv"
 efo_rels_v2 = "data/efo_edges.csv"
 nxontology_measure = "batet"
 top_x = 100
@@ -55,7 +55,7 @@ palette = {}
 for m in modelData:
     palette[m["name"]] = m["col"]
 
-output = "output/trait-trait-v1"
+output = "output/trait-trait-v1-lowercase"
 Path(output).mkdir(parents=True, exist_ok=True)
 Path(f"{output}/images").mkdir(parents=True, exist_ok=True)
 
