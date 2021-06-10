@@ -114,7 +114,7 @@ def efo_node_data_v1():
 
 # read the EBI mapping data
 def get_ebi_data(efo_node_df):
-    f = "output/ebi-ukb-cleaned.csv"
+    f = "output/ebi-ukb-cleaned-cat.csv"
     if os.path.exists(f):
         logger.info(f"{f} exists")
         ebi_df = pd.read_csv(f)
@@ -670,19 +670,24 @@ def run_wa(mapping_types, mapping_name, ebi_df):
 
 
 # create plot of number of correct top predictions for each model
-def get_top_hits(ebi_df):
-    # get some top counts
-    # to do
-    # - statify by mapping_type
+def get_top_hits(ebi_df, batet_score=1,category=''):
+    logger.info(f'{category} {batet_score}')
+    logger.info(ebi_df.shape)
+
+    # stratify by category
+    if category != 'all':
+        ebi_df = ebi_df[ebi_df['PROPERTY_TYPE']==category]
+        logger.info(ebi_df.shape)
 
     res = []
-    # add totals
+    # add manual mapping info
     ebi_df.loc[~ebi_df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
     d = dict(ebi_df["MAPPING_TYPE"].value_counts())
-    d["Model"] = "Total"
+    d["Model"] = "Manual"
     d["Total"] = ebi_df.shape[0]
     res.append(d)
-    logger.info(res)
+
+    # for each model get check top hits
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
@@ -700,22 +705,24 @@ def get_top_hits(ebi_df):
         logger.info(f'\n{df.columns}')
 
         # filter by mapping_type
-        #df = df[df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow","Other"])]
-        d = dict(df[df["nx"] == 1]["MAPPING_TYPE"].value_counts())
+        d = dict(df[df["nx"] >= batet_score]["MAPPING_TYPE"].value_counts())
         d["Model"] = i["name"]
-        d["Total"] = df[df["nx"] == 1].shape[0]
+        d["Total"] = df[df["nx"] >= batet_score].shape[0]
         res.append(d)
 
     #logger.info(res)
     res_df = pd.DataFrame(res).sort_values(by="Total", ascending=False)
+    totals = list(res_df['Total'])
+    # drop totals from plot
+    res_df.drop(columns=['Total'],inplace=True)
+    logger.info(res_df.columns)
     logger.info(res_df)
-    ax = res_df[["Exact", "Broad", "Narrow", "Other", "Model"]].plot.bar(
+    ax = res_df.plot.bar(
         stacked=True, figsize=(10, 10)
     )
     ax.set_xticklabels(res_df["Model"], rotation=45, ha="right")
     
     # add totals
-    totals = list(res_df['Total'])
     logger.info(totals)
     # Set an offset that is used to bump the label up a bit above the bar.
     y_offset = 4
@@ -725,7 +732,7 @@ def get_top_hits(ebi_df):
         ax.text(i, total + y_offset, round(total), ha='center',weight='bold')
     
     fig = ax.get_figure()
-    fig.savefig(f"{output}/images/top-counts-by-type.png", dpi=1000)
+    fig.savefig(f"{output}/images/top-counts-batet-{batet_score}-{category}.png", dpi=1000)
 
 
 # look at examples where predictions vary across model
@@ -924,7 +931,8 @@ def run():
         mapping_types=["Broad", "Narrow"], mapping_name="broad-narrow", ebi_df=ebi_df
     )
     # create summary tophits plot
-    get_top_hits(ebi_df)
+    for i in range(0.5,1,0.1):
+        get_top_hits(ebi_df,batet_score=i)
     # create high/low/spread tables
     create_examples(efo_node_df)
 
@@ -932,8 +940,15 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    get_top_hits(ebi_df)
 
+    cats = set(list(list(ebi_df['PROPERTY_TYPE'])))
+    # run over a range of batet filters
+    for i in range(5,10):
+        # run for each variable category
+        for c in cats:
+            get_top_hits(ebi_df,batet_score=i/10,category=c)
+        # run for all cats
+        get_top_hits(ebi_df,batet_score=1,category='all')
 if __name__ == "__main__":
-    run()
-    #dev()
+    #run()
+    dev()

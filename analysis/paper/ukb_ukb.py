@@ -36,7 +36,7 @@ top_x = 100
 # define the models and set some colours
 cols = sns.color_palette()
 modelData = [
-    {"name": "BLUEBERT-EFO", "model": "BLUEBERT-EFO", "col": cols[0]},
+    #{"name": "BLUEBERT-EFO", "model": "BLUEBERT-EFO", "col": cols[0]},
     {"name": "BioBERT", "model": "biobert_v1.1_pubmed", "col": cols[1]},
     {"name": "BioSentVec", "model": "BioSentVec", "col": cols[2]},
     {
