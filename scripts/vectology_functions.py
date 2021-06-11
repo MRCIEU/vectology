@@ -141,12 +141,12 @@ def map_trait_to_cat():
     #ukb_cat_df = pd.read_csv(ukb_cat)
     #logger.info(f'\n{ukb_cat_df.head()}')
 
-    ebi_coding_df = pd.read_csv('data/ukbiobank_zooma.csv')
+    ebi_coding_df = pd.read_csv('data/ukbiobank_zooma_annotated.csv')
     ebi_coding_df['PROPERTY_VALUE'] = ebi_coding_df['PROPERTY_VALUE'].str.lower()
     ebi_coding_df.drop_duplicates(subset=['PROPERTY_VALUE'],inplace=True)
     logger.info(f'\n{ebi_coding_df.head()}')
 
-    df = pd.merge(ebi_df,ebi_coding_df[['PROPERTY_VALUE','PROPERTY_TYPE']],left_on='query',right_on='PROPERTY_VALUE',how='left')
+    df = pd.merge(ebi_df,ebi_coding_df[['PROPERTY_VALUE','PROPERTY_TYPE','Type']],left_on='query',right_on='PROPERTY_VALUE',how='left')
     logger.info(df.shape)    
     
     # find which query names are not in category df

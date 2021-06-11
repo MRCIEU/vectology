@@ -676,7 +676,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
 
     # stratify by category
     if category != 'all':
-        ebi_df = ebi_df[ebi_df['PROPERTY_TYPE']==category]
+        ebi_df = ebi_df[ebi_df['Type']==category]
         logger.info(ebi_df.shape)
 
     res = []
@@ -717,6 +717,10 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     res_df.drop(columns=['Total'],inplace=True)
     logger.info(res_df.columns)
     logger.info(res_df)
+    logger.info(res_df.shape)
+    #if res_df.shape[1]==1:
+    #    logger.warning('No data for plot')
+    #    return
     ax = res_df.plot.bar(
         stacked=True, figsize=(10, 10)
     )
@@ -931,8 +935,14 @@ def run():
         mapping_types=["Broad", "Narrow"], mapping_name="broad-narrow", ebi_df=ebi_df
     )
     # create summary tophits plot
-    for i in range(0.5,1,0.1):
-        get_top_hits(ebi_df,batet_score=i)
+    cats = set(list(list(ebi_df['Type'])))
+    # run over a range of batet filters
+    for i in range(5,11):
+        # run for each variable category
+        for c in cats:
+            get_top_hits(ebi_df,batet_score=i/10,category=c)
+        # run for all cats
+        get_top_hits(ebi_df,batet_score=i/10,category='all')
     # create high/low/spread tables
     create_examples(efo_node_df)
 
@@ -940,15 +950,16 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
+    logger.info(ebi_df['Type'].value_counts())
 
-    cats = set(list(list(ebi_df['PROPERTY_TYPE'])))
+    cats = set(list(list(ebi_df['Type'])))
     # run over a range of batet filters
-    for i in range(5,10):
+    for i in range(5,11):
         # run for each variable category
         for c in cats:
             get_top_hits(ebi_df,batet_score=i/10,category=c)
         # run for all cats
-        get_top_hits(ebi_df,batet_score=1,category='all')
+        get_top_hits(ebi_df,batet_score=i/10,category='all')
 if __name__ == "__main__":
     #run()
     dev()
