@@ -570,29 +570,32 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
         logger.info(df.head())
         logger.info(df.shape)
         # remove duplicates
-        df.drop_duplicates(subset=["manual", "prediction"], inplace=True)
+        #df.drop_duplicates(subset=["mapping_id","manual", "prediction"], inplace=True)
         top_res = []
-        manual_efos = list(ebi_df["full_id"])
-        for i in range(0, len(manual_efos)):
+        #mapping_ids = list(ebi_df["mapping_id"].unique())
+        for i,row_i in ebi_df.iterrows():
             # for i in range(0,10):
-            manual_efo = manual_efos[i]
-            efo_predictions = df[df["manual"] == manual_efo].head(n=top_num)[
+            mapping_id = row_i['mapping_id']
+            efo_predictions = df[df["mapping_id"] == mapping_id].head(n=top_num)[
                 ["prediction", "score"]
             ]
             # end = time.time()
-            # run nxontolog for each
-            for j, row in efo_predictions.iterrows():
-                predicted_efo = row["prediction"]
-                score = row["score"]
-                try:
+            # run nxontology for each
+            for j, row_j in efo_predictions.iterrows():
+                predicted_efo = row_j["prediction"]
+                score = row_j["score"]
+                try:                        
                     res = efo_nx.similarity(manual_efo, predicted_efo).results()
                     nx_val = res[nxontology_measure]
+                    t = 'http://www.ebi.ac.uk/efo/EFO_0009516'
+                    if mapping_id == 796:
+                        logger.info(f'{i+1} {t} {predicted_efo} {nx_val}')
                 except:
                     nx_val = 0
                 top_res.append(
                     {
                         "mapping_id": i + 1,
-                        "manual": manual_efo,
+                        "manual": row_i['full_id'],
                         "prediction": predicted_efo,
                         "score": score,
                         "nx": nx_val,
@@ -743,7 +746,11 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
 #  high = all high nx
 # low = all low nx
 # spread = high sd nx
-def run_high_low(type: str, ebi_df_exact):
+def run_high_low(type: str, ebi_df_exact, efo_node_df):
+    f = f"{output}/{type}-predictions.tsv"
+    if os.path.exists(f):
+        logger.info(f'{f} done')
+        return
     match = []
     logger.info(f"\n##### {type} #####")
     for i in modelData:
@@ -756,17 +763,17 @@ def run_high_low(type: str, ebi_df_exact):
 
         if type == "low":
             match.extend(list(set(list(df[df["nx"] > 0.5]["mapping_id"]))))
-            missing_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
+            hl_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
 
         elif type == "high":
             match.extend(list(set(list(df[df["nx"] < 0.95]["mapping_id"]))))
-            missing_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
+            hl_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
 
         elif type == "spread":
-            missing_df = ebi_df_exact
+            hl_df = ebi_df_exact
 
-    logger.info(missing_df.shape)
-    logger.info(missing_df["MAPPING_TYPE"].value_counts())
+    logger.info(hl_df.shape)
+    logger.info(hl_df["MAPPING_TYPE"].value_counts())
 
     # add the top prediction from each model to the missing df
     # note, some of them don't have any matches to top 100 - why is that...???
@@ -776,13 +783,13 @@ def run_high_low(type: str, ebi_df_exact):
         df = pd.read_csv(fName, sep="\t")
         df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
         # get data
-        missing_df = pd.merge(
+        hl_df = pd.merge(
             df[["mapping_id", "prediction", "score", "nx"]],
-            missing_df,
+            hl_df,
             left_on="mapping_id",
             right_on="mapping_id",
         )
-        missing_df.rename(
+        hl_df.rename(
             columns={
                 "prediction": f"{i['name']}-efo",
                 "score": f"{i['name']}-score",
@@ -793,7 +800,7 @@ def run_high_low(type: str, ebi_df_exact):
 
     # get rows with largest range for spread option
     if type == "spread":
-        nx_vals = missing_df.filter(regex=".*-nx", axis=1)
+        nx_vals = hl_df.filter(regex=".*-nx", axis=1)
         logger.info(nx_vals)
         nx_vals["std"] = nx_vals.std(axis=1)
         logger.info(nx_vals)
@@ -802,32 +809,38 @@ def run_high_low(type: str, ebi_df_exact):
         logger.info(nx_vals_top)
         nx_ind = nx_vals_top.index
         logger.info(nx_ind)
-        missing_df = missing_df[missing_df.index.isin(nx_ind)]
-        missing_df["std"] = nx_vals["std"]
-        missing_df = missing_df.sort_values("std", ascending=False)
-
-    # limit all to top 10
-    missing_df = missing_df
+        hl_df = hl_df[hl_df.index.isin(nx_ind)]
+        hl_df["std"] = nx_vals["std"]
+        hl_df = hl_df.sort_values("std", ascending=False)
 
     # add mean nx
-    missing_df["mean-nx"] = missing_df.filter(regex=".*-nx", axis=1).mean(
+    hl_df["mean-nx"] = hl_df.filter(regex=".*-nx", axis=1).mean(
         numeric_only=True, axis=1
     )
     # sort by min nx
     if type == "high":
-        missing_df.sort_values(by="mean-nx", ascending=False, inplace=True)
+        hl_df.sort_values(by="mean-nx", ascending=False, inplace=True)
     elif type == "low":
-        missing_df.sort_values(by="mean-nx", ascending=True, inplace=True)
-    logger.info(missing_df.head())
-    missing_df.to_csv(f"{output}/{type}-predictions.tsv", sep="\t", index=False)
+        hl_df.sort_values(by="mean-nx", ascending=True, inplace=True)
+
+    # add EFO labels
+    efo_cols = [col for col in hl_df.columns if "efo" in col]
+    efo_dic = dict(zip(efo_node_df["efo_id"], efo_node_df["efo_label"]))
+    for e in efo_cols:
+        model = e.replace("-efo", "")
+        model_efo_name = f"{model}-efo-name"
+        hl_df[model_efo_name] = hl_df[e].map(efo_dic)
+
+    logger.info(hl_df.head())
+    hl_df.to_csv(f, sep="\t", index=False)
 
 
 # output tidy files from above
 def tidy_up_and_get_rank(df, efo_node_df, name):
-    efo_cols = [col for col in df.columns if "efo" in col]
-    efo_dic = dict(zip(efo_node_df["efo_id"], efo_node_df["efo_label"]))
+    efo_cols = [col for col in df.columns if col.endswith("efo")]
+    #efo_dic = dict(zip(efo_node_df["efo_id"], efo_node_df["efo_label"]))
     # logger.info(efo_cols)
-    keep_list = ["query", "MAPPED_TERM_LABEL"]
+    keep_list = ["query", "MAPPED_TERM_LABEL", "Type"]
     # efo_cols=['SequenceMatcher-efo']
     for e in efo_cols:
         logger.info(e)
@@ -835,15 +848,15 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         keep_list.append(model)
         model_efo_name = f"{model}-efo-name"
         model_nx = f"{model}-nx"
-        logger.info(f"{df[e]} {df[e].map(efo_dic)}")
-        df[model_efo_name] = df[e].map(efo_dic)
+        #logger.info(f"{df[e]} {df[e].map(efo_dic)}")
+        #df[model_efo_name] = df[e].map(efo_dic)
         # get the rank
         top = pd.read_csv(f"{output}/{model}-top-100.tsv.gz", sep="\t")
-        logger.info(top)
+        #ogger.info(top)
         rank_vals = []
         for i, row in df.iterrows():
             full_id = row["full_id"]
-            logger.info(f"#### {full_id}")
+            #logger.info(f"#### {full_id}")
             top_match_df = top[top["manual"] == full_id].reset_index()
             # find manual efo in top
             match_rank = top_match_df[top_match_df["prediction"] == full_id]
@@ -857,13 +870,13 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         df[model] = rank_vals
     df = df[keep_list]
     logger.info(f"\n{df}")
-    df.to_csv(f"{output}/{name}.csv", index=False)
+    df.to_csv(f"{output}/{name}-clean.csv", index=False)
     return df
 
 
 # run the high/low/spread examples
 def create_examples(efo_node_df):
-    ebi_df = pd.read_csv("output/ebi-ukb-cleaned.csv")
+    ebi_df = pd.read_csv("output/ebi-ukb-cleaned-cat.csv")
     ebi_df_exact = ebi_df[ebi_df["MAPPING_TYPE"] == "Exact"]
     logger.info(ebi_df_exact.shape)
 
@@ -871,22 +884,22 @@ def create_examples(efo_node_df):
     ebi_df_exact.drop_duplicates(subset=["query"], inplace=True)
     logger.info(ebi_df_exact.shape)
 
-    run_high_low("low", ebi_df_exact)
-    run_high_low("high", ebi_df_exact)
-    run_high_low("spread", ebi_df_exact)
+    run_high_low("low", ebi_df_exact, efo_node_df)
+    run_high_low("high", ebi_df_exact, efo_node_df)
+    run_high_low("spread", ebi_df_exact, efo_node_df)
 
-    df_low = pd.read_csv(f"{output}/low-predictions.tsv", sep="\t").head(n=10)
+    df_low = pd.read_csv(f"{output}/low-predictions.tsv", sep="\t")
     logger.info(f"\n{df_low.head()}")
     logger.info(f"\n{df_low.columns}")
     df_low = tidy_up_and_get_rank(df_low, efo_node_df, "low")
 
-    df_high = pd.read_csv(f"{output}/high-predictions.tsv", sep="\t").head(n=10)
+    df_high = pd.read_csv(f"{output}/high-predictions.tsv", sep="\t")
     df_high = tidy_up_and_get_rank(df_high, efo_node_df, "high")
 
     df_range = (
         pd.read_csv(f"{output}/spread-predictions.tsv", sep="\t")
         .sort_values("std", ascending=False)
-        .head(n=10)
+        .head(n=20)
     )
     df_range = tidy_up_and_get_rank(df_range, efo_node_df, "spread")
 
@@ -950,16 +963,17 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    logger.info(ebi_df['Type'].value_counts())
-
-    cats = set(list(list(ebi_df['Type'])))
+    efo_nx = create_nx()
+    get_top_using_pairwise_file(model_name="SciSpacy", top_num=100, efo_nx=efo_nx, ebi_df=ebi_df)
+    #cats = set(list(list(ebi_df['Type'])))
     # run over a range of batet filters
-    for i in range(5,11):
-        # run for each variable category
-        for c in cats:
-            get_top_hits(ebi_df,batet_score=i/10,category=c)
-        # run for all cats
-        get_top_hits(ebi_df,batet_score=i/10,category='all')
+    #for i in range(5,11):
+    #    # run for each variable category
+    #    for c in cats:
+    #        get_top_hits(ebi_df,batet_score=i/10,category=c)
+    #    # run for all cats
+    #    get_top_hits(ebi_df,batet_score=i/10,category='all')
+    #create_examples(efo_node_df)
 if __name__ == "__main__":
-    #run()
-    dev()
+    run()
+    #dev()
