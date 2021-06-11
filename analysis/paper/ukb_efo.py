@@ -582,14 +582,12 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
             # end = time.time()
             # run nxontology for each
             for j, row_j in efo_predictions.iterrows():
+                manual_efo = row_i['full_id']
                 predicted_efo = row_j["prediction"]
                 score = row_j["score"]
                 try:                        
                     res = efo_nx.similarity(manual_efo, predicted_efo).results()
                     nx_val = res[nxontology_measure]
-                    t = 'http://www.ebi.ac.uk/efo/EFO_0009516'
-                    if mapping_id == 796:
-                        logger.info(f'{i+1} {t} {predicted_efo} {nx_val}')
                 except:
                     nx_val = 0
                 top_res.append(
