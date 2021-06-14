@@ -652,8 +652,10 @@ def run_wa(mapping_types, mapping_name, ebi_df):
 
             df = pd.DataFrame(all_res)
             df["efo"] = ebi_df["full_id"]
+            logger.info(f'\n{df.head()}')
             df_melt = pd.melt(df, id_vars=["efo"])
             df_melt.rename(columns={"variable": "Model"}, inplace=True)
+            df_melt.to_csv(f'{output}/weighted-average-nx-{top_num}-{mapping_name}.csv',index=False)
             ax = sns.displot(
                 x="value",
                 hue="Model",
@@ -669,9 +671,28 @@ def run_wa(mapping_types, mapping_name, ebi_df):
             # ax.set_xscale("log")
             ax.savefig(f, dpi=1000)
 
+def describe_wa(wa_csv):
+    df = pd.read_csv(wa_csv)
+    logger.info(f'\n{df.head()}') 
+    d = df.groupby('Model').describe()
+    logger.info(d)
+    # violin plot
+    mean_order = df.groupby('Model')['value'].mean().reset_index().sort_values('value',ascending=False)['Model']
+    logger.info(mean_order)
+    ax = sns.catplot(x="Model",y="value",
+               data=df, kind="violin", order=mean_order, palette=palette)
+    ax.set(xlabel=f"Model/Method",ylabel="Weighted average of top 10 batet scores")
+    ax.set_xticklabels(rotation=45, ha="right")
+    # ax.set_xscale("log")
+    ax.savefig(f'{output}/images/wa-violin-plot.png', dpi=1000)
+
 
 # create plot of number of correct top predictions for each model
 def get_top_hits(ebi_df, batet_score=1,category=''):
+    fig_f = f"{output}/images/top-counts-batet-{batet_score}-{category}.png"
+    if os.path.exists(fig_f):
+        logger.info(f'{fig_f} exists')
+        return
     logger.info(f'{category} {batet_score}')
     logger.info(ebi_df.shape)
 
@@ -737,7 +758,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
         ax.text(i, total + y_offset, round(total), ha='center',weight='bold')
     
     fig = ax.get_figure()
-    fig.savefig(f"{output}/images/top-counts-batet-{batet_score}-{category}.png", dpi=1000)
+    fig.savefig(fig_f, dpi=1000)
 
 
 # look at examples where predictions vary across model
@@ -760,7 +781,7 @@ def run_high_low(type: str, ebi_df_exact, efo_node_df):
         df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
 
         if type == "low":
-            match.extend(list(set(list(df[df["nx"] > 0.5]["mapping_id"]))))
+            match.extend(list(set(list(df[df["nx"] > 0.95]["mapping_id"]))))
             hl_df = ebi_df_exact[~ebi_df_exact["mapping_id"].isin(match)]
 
         elif type == "high":
@@ -774,7 +795,6 @@ def run_high_low(type: str, ebi_df_exact, efo_node_df):
     logger.info(hl_df["MAPPING_TYPE"].value_counts())
 
     # add the top prediction from each model to the missing df
-    # note, some of them don't have any matches to top 100 - why is that...???
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
@@ -853,9 +873,10 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         #ogger.info(top)
         rank_vals = []
         for i, row in df.iterrows():
+            mapping_id = row["mapping_id"]
             full_id = row["full_id"]
             #logger.info(f"#### {full_id}")
-            top_match_df = top[top["manual"] == full_id].reset_index()
+            top_match_df = top[top["mapping_id"] == mapping_id].reset_index()
             # find manual efo in top
             match_rank = top_match_df[top_match_df["prediction"] == full_id]
             if match_rank.empty:
@@ -868,7 +889,7 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         df[model] = rank_vals
     df = df[keep_list]
     logger.info(f"\n{df}")
-    df.to_csv(f"{output}/{name}-clean.csv", index=False)
+    df.to_csv(f"{output}/all-{name}.csv", index=False)
     return df
 
 
@@ -961,17 +982,7 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    efo_nx = create_nx()
-    get_top_using_pairwise_file(model_name="SciSpacy", top_num=100, efo_nx=efo_nx, ebi_df=ebi_df)
-    #cats = set(list(list(ebi_df['Type'])))
-    # run over a range of batet filters
-    #for i in range(5,11):
-    #    # run for each variable category
-    #    for c in cats:
-    #        get_top_hits(ebi_df,batet_score=i/10,category=c)
-    #    # run for all cats
-    #    get_top_hits(ebi_df,batet_score=i/10,category='all')
-    #create_examples(efo_node_df)
+    describe_wa(f'{output}/weighted-average-nx-10-all.csv')
 if __name__ == "__main__":
-    run()
-    #dev()
+    #run()
+    dev()

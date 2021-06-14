@@ -161,4 +161,4 @@ def map_trait_to_cat():
     df.to_csv('output/ebi-ukb-cleaned-cat.csv',index=False)
 
 
-map_trait_to_cat()
+#map_trait_to_cat()
