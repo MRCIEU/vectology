@@ -36,7 +36,7 @@ top_x = 100
 # define the models and set some colours
 cols = sns.color_palette()
 modelData = [
-    #{"name": "BLUEBERT-EFO", "model": "BLUEBERT-EFO", "col": cols[0]},
+    {"name": "BLUEBERT-EFO", "model": "BLUEBERT-EFO", "col": cols[0]},
     {"name": "BioBERT", "model": "biobert_v1.1_pubmed", "col": cols[1]},
     {"name": "BioSentVec", "model": "BioSentVec", "col": cols[2]},
     {
@@ -85,7 +85,7 @@ def read_ebi():
     logger.info(ebi_df_dedup.shape)
     logger.info(ebi_df_dedup["MAPPING_TYPE"].value_counts())
 
-    ebi_df_dedup.to_csv(f"{output}/ebi_exact.tsv.gz", sep="\t")
+    ebi_df_dedup.to_csv(f"{output}/ebi_exact.tsv.gz", sep="\t",index=False)
     # ebi_df_dedup = ebi_df_dedup.head(n=10)
     return ebi_df, ebi_df_dedup
 
@@ -353,6 +353,11 @@ def com_scores():
     ax = sns.clustermap(spearman)
     ax.savefig(f"{output}/images/spearman.png", dpi=1000)
 
+def score_dist(df,model,term):
+    plt.figure(figsize=(16, 7))
+    sns.displot(df, x=model, kind="kde")
+    plt.savefig(f"{output}/images/sample-scores-{model}-{term}.png", dpi=1000)
+    plt.close()
 
 def compare_models_with_sample(sample, term):
     logger.info(f"Comparing models with {sample}")
@@ -380,6 +385,10 @@ def compare_models_with_sample(sample, term):
             com_sample = com_sample.append(df)
             # logger.info(com_sample.shape)
         com_sample.drop_duplicates(inplace=True)
+
+        # plot score distribution
+        score_dist(df=com_sample,model=model,term=term)
+
         #logger.info(f"\n{com_sample}")
         com_sample = com_sample.pivot(index="q1", columns="q2", values=model)
         # check for missing data
@@ -396,9 +405,11 @@ def compare_models_with_sample(sample, term):
 
         logger.info(f"\n{com_sample}")
         plt.figure(figsize=(16, 7))
+        sns.set(font_scale=0.7)
         sns.clustermap(com_sample, cmap="coolwarm")
         plt.savefig(f"{output}/images/sample-clustermap-{model}-{term}.png", dpi=1000)
         plt.close()
+        sns.set(font_scale=1)
 
 
 def create_random_queries():
@@ -422,7 +433,7 @@ def term_sample(term):
 
 
 def manual_samples():
-    sample = [
+    sample1 = [
         "Alzheimer s disease",
         "Abnormalities of heart beat",
         "Acute hepatitis A",
@@ -447,6 +458,52 @@ def manual_samples():
         "other renal/kidney problem",
         "colitis/not crohns or ulcerative colitis",
     ]
+    sample2 = [
+        "alzheimer s disease",
+        "stroke not specified as haemorrhage or infarction",
+        "subarachnoid haemorrhage",
+        "other diseases of liver",
+        "acute hepatitis b",
+        "abnormalities of heart beat",
+        "atrial fibrillation and flutter",
+        "chronic renal failure",
+        "atopic dermatitis",
+        "crohn s disease",
+        "insulin dependent diabetes mellitus",
+        "non insulin dependent diabetes mellitus",
+        "parkinson s disease",
+        "migraine",
+        "conduct disorders",
+        "diabetes mellitus in pregnancy",
+        "unspecified contact dermatitis",
+        "zoster",
+        "varicella",
+        "subsequent myocardial infarction",
+        "secondary parkinsonism",
+        "essential primary hypertension",
+        "injury of heart",
+        "standing height",
+        "snoring",
+        "frequency of tiredness / lethargy in last 2 weeks",
+        "diastolic blood pressure, automated reading",
+        "neuroticism score",
+        "body mass index (bmi)",
+        "weight",
+        "whole body fat mass",
+        "leukaemia",
+        "malignant melanoma",
+        "angina",
+        "heart attack/myocardial infarction",
+        "transient ischaemic attack (tia)",
+        "sleep apnoea",
+        "acne/acne vulgaris",
+        "herpes simplex",
+        "worrier / anxious feelings",
+        "longest period of depression",
+        "other respiratory problems",
+        "sitting height"    
+        ]
+    sample = sample2
     sample = [x.lower() for x in sample]
     return sample
 
@@ -481,15 +538,15 @@ def run_mantel(term):
 
 def sample_checks():
 
-    term = "neoplasm"
-    sample = term_sample(term=term)
-    compare_models_with_sample(sample=sample, term=term)
-    run_mantel(term)
+    #term = "neoplasm"
+    #sample = term_sample(term=term)
+    #compare_models_with_sample(sample=sample, term=term)
+    #run_mantel(term)
 
-    term = "random"
-    sample = create_random_queries()
-    compare_models_with_sample(sample=sample, term=term)
-    run_mantel(term)
+    #term = "random"
+    #sample = create_random_queries()
+    #compare_models_with_sample(sample=sample, term=term)
+    #run_mantel(term)
 
     term = "manual"
     sample = manual_samples()
@@ -519,9 +576,9 @@ def dev():
     # create_pairwise_bert_efo(ebi_filt)
     # create_pairwise_levenshtein(ebi_filt)
     #com_scores()
-    #sample_checks()
+    sample_checks()
 
 
 if __name__ == "__main__":
-    #dev()
-    run_all()
+    dev()
+    #run_all()
