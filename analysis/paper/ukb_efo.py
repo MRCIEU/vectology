@@ -16,7 +16,6 @@ from scripts.vectology_functions import (
     create_aaa_distances,
     create_pair_distances,
     embed_text,
-    encode_traits,
     create_efo_nxo,
     create_efo_data,
 )

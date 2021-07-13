@@ -165,7 +165,7 @@ def create_nx_pairs_nr(ebi_df, efo_nx):
                             "e2": e2,
                             "q1": q1,
                             "q2": q2,
-                            "nx": nx_val,
+                            "EFO-batet": nx_val,
                         }
                     )
             counter += 1
@@ -314,7 +314,7 @@ def com_scores():
     # create df of scores
     # com_scores = pd.read_csv(f'{output}/nx-ebi-pairs-nr.tsv.gz',sep='\t')
     com_scores_df = pd.read_csv(f"{output}/nx-ebi-pairs-nr.tsv.gz", sep="\t")
-    com_scores_df.rename(columns={"score": "nx"}, inplace=True)
+    com_scores_df.rename(columns={"score": "EFO-batet"}, inplace=True)
     logger.info(com_scores_df.shape)
     logger.info(f"\n{com_scores_df.head()}")
     # add the distances
@@ -364,7 +364,7 @@ def compare_models_with_sample(sample, term):
     # get pairs and analyse
     models = [x["name"] for x in modelData]
     models.remove("Zooma")
-    models.append("nx")
+    models.append("EFO-batet")
     com_scores_df = pd.read_csv(f"{output}/com_scores.tsv.gz", sep="\t")
     for model in models:
         logger.info(f"Running {model}")
@@ -430,6 +430,11 @@ def term_sample(term):
 
     sample = list(df["query"])[:30]
     return sample
+
+def string_length():
+    df = pd.read_csv(f"{output}/ebi_exact.tsv.gz", sep="\t")
+    str_sorted = sorted(df["query"],key=len)
+    return str_sorted
 
 
 def manual_samples():
@@ -511,7 +516,7 @@ def manual_samples():
 def run_mantel(term):
     models = [x["name"] for x in modelData]
     models.remove("Zooma")
-    models.append("nx")
+    models.append("EFO-batet")
     d = []
     for i in range(0, len(models)):
         for j in range(0, len(models)):
@@ -539,8 +544,9 @@ def run_mantel(term):
 def sample_checks():
 
     #term = "neoplasm"
-    #sample = term_sample(term=term)
+    #term = "disease"
     #compare_models_with_sample(sample=sample, term=term)
+    #sample = term_sample(term=term)
     #run_mantel(term)
 
     #term = "random"
@@ -552,7 +558,20 @@ def sample_checks():
     sample = manual_samples()
     compare_models_with_sample(sample=sample, term="manual")
     run_mantel(term)
+    
+    # smallest
+    #term = "smallest"
+    #str_sorted = string_length()
+    #smallest = str_sorted[:20]
+    #compare_models_with_sample(sample=smallest, term=term)
+    #run_mantel(term)
 
+    # longest
+    #term = "longest"
+    #str_sorted = string_length()
+    #smallest = str_sorted[-20:]
+    #compare_models_with_sample(sample=smallest, term=term)
+    #run_mantel(term)
 
 def run_all():
     efo_nx = create_nx()
@@ -568,16 +587,15 @@ def run_all():
 
 
 def dev():
-    # efo_nx = create_nx()
+    efo_nx = create_nx()
     ebi_all,ebi_filt = read_ebi()
-    # create_nx_pairs_nr(ebi_filt,efo_nx)
+    create_nx_pairs_nr(ebi_filt,efo_nx)
     # create_aaa()
     # create_pairwise(ebi_all,ebi_filt)
     # create_pairwise_bert_efo(ebi_filt)
     # create_pairwise_levenshtein(ebi_filt)
-    #com_scores()
+    com_scores()
     sample_checks()
-
 
 if __name__ == "__main__":
     dev()
