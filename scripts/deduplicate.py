@@ -8,10 +8,10 @@ from sklearn.cluster import DBSCAN
 from loguru import logger
 from vectology_functions import embed_text, create_aaa_distances
 
+file_name = 'list_outcomes_exact_matches.csv'
 trait_npy = 'trait_list.npy'
 
 def read_traits():
-    file_name='list_outcomes_exact_matches.csv'
     df = pd.read_csv(file_name)
     logger.info(f'\n{df}')
     return df
@@ -52,15 +52,22 @@ def run_aaa(df):
     #logger.info(data.x.attrs)
     return aaa
 
-def cluster(aaa):
-    clustering = DBSCAN(eps=10, min_samples=2).fit(aaa)
+def cluster(aaa,df):
+    logger.info('Clustering...')
+    clustering = DBSCAN(eps=2, min_samples=2).fit(aaa)
     labels = clustering.labels_
     logger.info(len(set(labels)))
+    df['cluster']=labels
+    logger.info(f'\n{df}')
+    df.to_csv('list_outcomes_exact_matches_cluster.csv',index=False)
+
+def cluster_summary(df):
+
 
 if __name__ == "__main__":
     df = read_traits()
     encode_gwas(df)
     aaa = run_aaa(df)
-    cluster(aaa)
+    df = cluster(aaa,df)
 
 
