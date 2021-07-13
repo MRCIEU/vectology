@@ -131,3 +131,4 @@ dmypy.json
 output
 .vscode
 __init__.py
+analysis/paper/data
