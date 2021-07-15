@@ -75,3 +75,7 @@ Models:
 - BIOSSES
 - MEDSTS
 - https://github.com/ncbi-nlp/BLUE_Benchmark
+
+#### Deduplication example
+
+python -m scripts.deduplication
