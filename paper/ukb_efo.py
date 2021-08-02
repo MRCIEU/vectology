@@ -12,6 +12,8 @@ import timeit
 import scispacy
 import spacy
 import Levenshtein
+import itertools
+import scipy
 from scripts.vectology_functions import (
     create_aaa_distances,
     create_pair_distances,
@@ -113,7 +115,7 @@ def efo_node_data_v1():
 
 # read the EBI mapping data
 def get_ebi_data(efo_node_df):
-    f = "output/ebi-ukb-cleaned-cat.csv"
+    f = "paper/output/ebi-ukb-cleaned-cat.csv"
     if os.path.exists(f):
         logger.info(f"{f} exists")
         ebi_df = pd.read_csv(f)
@@ -761,18 +763,32 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     fig.savefig(fig_f, dpi=1000)
 
 def t_test(ebi_df):
-    all_df = ebi_df[['mapping_id','query']]
-    # for each model check top hits
-    for i in modelData:
-        fName = f"{output}/{i['name']}-top-100.tsv.gz"
-        logger.info(fName)
-        df = pd.read_csv(fName, sep="\t")
-        df.drop_duplicates(subset=["mapping_id"], inplace=True)
-        all_df = pd.merge(all_df,df[['mapping_id','nx']],on='mapping_id')
-        all_df.rename(columns={'nx':i['name']},inplace=True)
-
+    f = f'{output}/all_top.csv'
+    if os.path.exists(f):
+        all_df = pd.read_csv(f)
+        logger.info(f'{f} done')
+    else:
+        all_df = ebi_df[['mapping_id']]
+        # for each model check top hits
+        for i in modelData:
+            fName = f"{output}/{i['name']}-top-100.tsv.gz"
+            logger.info(fName)
+            df = pd.read_csv(fName, sep="\t")
+            df.drop_duplicates(subset=["mapping_id"], inplace=True)
+            all_df = pd.merge(all_df,df[['mapping_id','nx']],on='mapping_id')
+            all_df.rename(columns={'nx':i['name']},inplace=True)
+        all_df.drop('mapping_id',inplace=True,axis=1)
+        all_df.to_csv(f,index=False)
     logger.info(f'\n{all_df}')
-    all_df.to_csv(f'{output}/all_top.csv',index=False)
+    c = all_df.corr()
+    logger.info(c)
+
+    # create df for pairwise t-test
+    results = pd.DataFrame(columns=all_df.columns, index=all_df.columns)
+    # run t-test for each pair
+    for (label1, column1), (label2, column2) in itertools.combinations(all_df.items(), 2):
+        results.loc[label1, label2] = results.loc[label2, label1] = scipy.stats.ttest_rel(column1, column2)
+    logger.info(f'\n{results}')
 
 # look at examples where predictions vary across model
 #  high = all high nx
@@ -908,7 +924,7 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
 
 # run the high/low/spread examples
 def create_examples(efo_node_df):
-    ebi_df = pd.read_csv("output/ebi-ukb-cleaned-cat.csv")
+    ebi_df = pd.read_csv("paper/output/ebi-ukb-cleaned-cat.csv")
     ebi_df_exact = ebi_df[ebi_df["MAPPING_TYPE"] == "Exact"]
     logger.info(ebi_df_exact.shape)
 
