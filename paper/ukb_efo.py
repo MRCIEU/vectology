@@ -28,11 +28,11 @@ import seaborn as sns
 sns.set_theme()
 
 # globals
-ebi_data = "data/UK_Biobank_master_file.tsv"
-efo_nodes_v1 = "data/efo_nodes_2021_02_01.csv"
-efo_rels_v1 = "data/efo_edges_2021_02_01.csv"
-efo_nodes_v2 = "data/efo_nodes_2021_05_26.csv"
-efo_rels_v2 = "data/efo_edges_2021_05_26.csv"
+ebi_data = "paper/data/UK_Biobank_master_file.tsv"
+efo_nodes_v1 = "paper/data/efo_nodes_2021_02_01.csv"
+efo_rels_v1 = "paper/data/efo_edges_2021_02_01.csv"
+efo_nodes_v2 = "paper/data/efo_nodes_2021_05_26.csv"
+efo_rels_v2 = "paper/data/efo_edges_2021_05_26.csv"
 nxontology_measure = "batet"
 top_x = 100
 
@@ -58,7 +58,7 @@ for m in modelData:
     palette[m["name"]] = m["col"]
 
 # set up an output directory
-output = "output/trait-efo-v1-lowercase"
+output = "paper/output/trait-efo-v1-lowercase"
 Path(output).mkdir(parents=True, exist_ok=True)
 Path(f"{output}/images").mkdir(parents=True, exist_ok=True)
 
@@ -367,7 +367,7 @@ def run_pairs(model):
         return dd
 
 
-# parse cosine paris and write to file
+# parse cosine pairs and write to file
 def write_to_file(model_name, pairwise_data, ebi_df, efo_node_df):
     logger.info(f"writing {model_name}")
     f = f"{output}/{model_name}-pairwise.tsv.gz"
@@ -691,13 +691,13 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     fig_f = f"{output}/images/top-counts-batet-{batet_score}-{category}.png"
     if os.path.exists(fig_f):
         logger.info(f'{fig_f} exists')
-        return
+        #return
     logger.info(f'{category} {batet_score}')
     logger.info(ebi_df.shape)
 
     # stratify by category
     if category != 'all':
-        ebi_df = ebi_df[ebi_df['Type']==category]
+        ebi_df = ebi_df[ebi_df['MAPPING_TYPE']==category]
         logger.info(ebi_df.shape)
 
     res = []
@@ -708,7 +708,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     d["Total"] = ebi_df.shape[0]
     res.append(d)
 
-    # for each model get check top hits
+    # for each model check top hits
     for i in modelData:
         fName = f"{output}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
@@ -749,6 +749,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     
     # add totals
     logger.info(totals)
+
     # Set an offset that is used to bump the label up a bit above the bar.
     y_offset = 4
     # Add labels to each bar.
@@ -759,6 +760,19 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     fig = ax.get_figure()
     fig.savefig(fig_f, dpi=1000)
 
+def t_test(ebi_df):
+    all_df = ebi_df[['mapping_id','query']]
+    # for each model check top hits
+    for i in modelData:
+        fName = f"{output}/{i['name']}-top-100.tsv.gz"
+        logger.info(fName)
+        df = pd.read_csv(fName, sep="\t")
+        df.drop_duplicates(subset=["mapping_id"], inplace=True)
+        all_df = pd.merge(all_df,df[['mapping_id','nx']],on='mapping_id')
+        all_df.rename(columns={'nx':i['name']},inplace=True)
+
+    logger.info(f'\n{all_df}')
+    all_df.to_csv(f'{output}/all_top.csv',index=False)
 
 # look at examples where predictions vary across model
 #  high = all high nx
@@ -966,7 +980,7 @@ def run():
         mapping_types=["Broad", "Narrow"], mapping_name="broad-narrow", ebi_df=ebi_df
     )
     # create summary tophits plot
-    cats = set(list(list(ebi_df['Type'])))
+    cats = set(list(list(ebi_df['MAPPING_TYPE'])))
     # run over a range of batet filters
     for i in range(5,11):
         # run for each variable category
@@ -981,8 +995,11 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    describe_wa(f'{output}/weighted-average-nx-10-all.csv')
-    
+    #describe_wa(f'{output}/weighted-average-nx-10-all.csv')
+    # create summary tophits plot
+    logger.info(ebi_df)
+    t_test(ebi_df)
+
 if __name__ == "__main__":
     #run()
     dev()
