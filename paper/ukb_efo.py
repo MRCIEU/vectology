@@ -982,6 +982,7 @@ def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
     describe_wa(f'{output}/weighted-average-nx-10-all.csv')
+    
 if __name__ == "__main__":
     #run()
     dev()

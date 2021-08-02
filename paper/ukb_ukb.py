@@ -573,7 +573,7 @@ def sample_checks():
     #compare_models_with_sample(sample=smallest, term=term)
     #run_mantel(term)
 
-def run_all():
+def run():
     efo_nx = create_nx()
     ebi_all, ebi_filt = read_ebi()
     # create_nx_pairs_nr(ebi_df,efo_nx)
@@ -599,4 +599,4 @@ def dev():
 
 if __name__ == "__main__":
     dev()
-    #run_all()
+    #run()
