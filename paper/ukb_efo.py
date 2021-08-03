@@ -1008,8 +1008,10 @@ def run():
     run_wa(
         mapping_types=["Broad", "Narrow"], mapping_name="broad-narrow", ebi_df=ebi_df
     )
+    describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
+
     # create summary tophits plot
-    cats = set(list(list(ebi_df['MAPPING_TYPE'])))
+    cats = ["Exact", "Broad", "Narrow"]
     # run over a range of batet filters
     for i in range(5,11):
         # run for each variable category
@@ -1024,10 +1026,10 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    #describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
+    describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
     # create summary tophits plot
-    logger.info(ebi_df)
-    get_top_hits(ebi_df,batet_score=1,category="all")
+    #logger.info(ebi_df)
+    #get_top_hits(ebi_df,batet_score=1,category="all")
     #t_test(ebi_df)
 
 if __name__ == "__main__":
