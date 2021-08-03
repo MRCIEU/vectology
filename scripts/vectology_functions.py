@@ -52,7 +52,7 @@ def create_pair_distances(v1=[],v2=[]):
 
     logger.info(f'{len(v1)} {len(v2)}')
     y = distance.cdist(v1, v2, 'cosine')
-    prlogger.infoint(len(y))
+    logger.info(len(y))
     return y
 
 # general encode function for df  

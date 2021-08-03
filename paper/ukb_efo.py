@@ -60,9 +60,10 @@ for m in modelData:
     palette[m["name"]] = m["col"]
 
 # set up an output directory
-output = "paper/output/trait-efo-v1-lowercase"
-Path(output).mkdir(parents=True, exist_ok=True)
-Path(f"{output}/images").mkdir(parents=True, exist_ok=True)
+output1 = "paper/output"
+output2 = f"{output1}/trait-efo-v2-lowercase"
+Path(output2).mkdir(parents=True, exist_ok=True)
+Path(f"{output2}/images").mkdir(parents=True, exist_ok=True)
 
 # get the UKB EFO mappings and EFO data
 def get_data():
@@ -70,15 +71,15 @@ def get_data():
     if not os.path.exists(ebi_data):
         logger.info(f"Downloading {ebi_data}...")
         os.system(
-            "wget -O data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv"
+            "wget -O paper/data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv"
         )
     # get the EFO data
     if not os.path.exists(efo_nodes):
         logger.info(f"Downloading efo.json...")
         os.system(
-            "wget -O data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.1/efo.json"
+            "wget -O paper/data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.1/efo.json"
         )
-        node_df, edge_df = create_efo_data("data/efo.json")
+        node_df, edge_df = create_efo_data("paper/data/efo.json")
         node_df.to_csv(efo_nodes, index=False)
         edge_df.to_csv(efo_rels, index=False)
 
@@ -115,7 +116,7 @@ def efo_node_data_v1():
 
 # read the EBI mapping data
 def get_ebi_data(efo_node_df):
-    f = "paper/output/ebi-ukb-cleaned-cat.csv"
+    f = f"{output1}/ebi-ukb-cleaned-cat.csv"
     if os.path.exists(f):
         logger.info(f"{f} exists")
         ebi_df = pd.read_csv(f)
@@ -206,7 +207,7 @@ def encode_ebi(ebi_df):
         name = m["name"]
         model = m["model"]
         if name in vectology_models:
-            f = f"output/{m['name']}-ebi-encode.npy"
+            f = f"{output1}/{m['name']}-ebi-encode.npy"
             if os.path.exists(f):
                 logger.info(f"{name} done")
             else:
@@ -234,7 +235,7 @@ def encode_efo(efo_node_df):
         name = m["name"]
         model = m["model"]
         if name in vectology_models:
-            f = f"output/{m['name']}-efo-encode.npy"
+            f = f"{output1}/{m['name']}-efo-encode.npy"
             if os.path.exists(f):
                 logger.info(f"{name} done")
             else:
@@ -253,8 +254,8 @@ def encode_efo(efo_node_df):
 
 # create GUSE embeddings for EBI and EFO
 def run_guse(ebi_df, efo_node_df):
-    f1 = "output/GUSE-ebi-encode.npy"
-    f2 = "output/GUSE-efo-encode.npy"
+    f1 = f"{output1}/GUSE-ebi-encode.npy"
+    f2 = f"{output1}/GUSE-efo-encode.npy"
 
     if os.path.exists(f2):
         logger.info(f"{f2} done")
@@ -286,8 +287,8 @@ def run_guse(ebi_df, efo_node_df):
 
 # create SPACY and SciSpaCy embeddings
 def run_spacy(model, name, ebi_df, efo_node_df):
-    f1 = f"output/{name}-ebi-encode.npy"
-    f2 = f"output/{name}-efo-encode.npy"
+    f1 = f"{output1}/{name}-ebi-encode.npy"
+    f2 = f"{output1}/{name}-efo-encode.npy"
     if os.path.exists(f2):
         logger.info(f"{f2} exists")
     else:
@@ -308,7 +309,7 @@ def run_spacy(model, name, ebi_df, efo_node_df):
 
 
 def run_levenshtein(ebi_df, efo_node_df):
-    f = f"{output}/levenshtein-pairwise.tsv.gz"
+    f = f"{output2}/levenshtein-pairwise.tsv.gz"
     if os.path.exists(f):
         logger.info(f"{f} done")
     else:
@@ -349,13 +350,13 @@ def create_nx():
 
 # create cosine pairs
 def run_pairs(model):
-    dd_name = f"{output}/{model}-dd.npy"
+    dd_name = f"{output2}/{model}-dd.npy"
 
     # v1 = list(ebi_df[model])
     # v2 = list(efo_df[model])
-    if os.path.exists(f"output/{model}-ebi-encode.npy"):
-        v1 = np.load(f"output/{model}-ebi-encode.npy")
-        v2 = np.load(f"output/{model}-efo-encode.npy")
+    if os.path.exists(f"{output1}/{model}-ebi-encode.npy"):
+        v1 = np.load(f"{output1}/{model}-ebi-encode.npy")
+        v2 = np.load(f"{output1}/{model}-efo-encode.npy")
 
         if os.path.exists(dd_name):
             logger.info(f"{dd_name} already created, loading...")
@@ -372,7 +373,7 @@ def run_pairs(model):
 # parse cosine pairs and write to file
 def write_to_file(model_name, pairwise_data, ebi_df, efo_node_df):
     logger.info(f"writing {model_name}")
-    f = f"{output}/{model_name}-pairwise.tsv.gz"
+    f = f"{output2}/{model_name}-pairwise.tsv.gz"
     if os.path.exists(f):
         logger.info(f"Already done {f}")
     else:
@@ -438,7 +439,7 @@ def zooma_api(text):
 # run zooma API for ebi mappings
 def run_zooma(ebi_df):
     # takes around 3 minutes for 1,000
-    f = f"{output}/zooma.tsv"
+    f = f"{output2}/zooma.tsv"
     if os.path.exists(f):
         logger.info("Zooma done")
     else:
@@ -463,7 +464,7 @@ def run_zooma(ebi_df):
 def filter_zooma(efo_nx, ebi_df):
     dis_results = []
     efo_results = []
-    df = pd.read_csv(f"{output}/zooma.tsv", sep="\t")
+    df = pd.read_csv(f"{output2}/zooma.tsv", sep="\t")
     # add manual EFO
     df = pd.merge(
         df,
@@ -486,7 +487,7 @@ def filter_zooma(efo_nx, ebi_df):
     df["score"] = dis_results
     logger.info(df[df["score"] > 0.9].shape)
     df.to_csv(
-        f"{output}/Zooma-pairwise-filter.tsv.gz",
+        f"{output2}/Zooma-pairwise-filter.tsv.gz",
         sep="\t",
         index=False,
         compression="gzip",
@@ -497,13 +498,13 @@ def filter_zooma(efo_nx, ebi_df):
 # create filtered pairwise data
 def filter_paiwise_file(model_name):
     logger.info(f"filter_pairwise_file {model_name}")
-    f = f"{output}/{model_name}-pairwise-filter.tsv.gz"
+    f = f"{output2}/{model_name}-pairwise-filter.tsv.gz"
     if os.path.exists(f):
         logger.info(f"Already done {model_name}")
         return
     else:
         try:
-            df = pd.read_csv(f"{output}/{model_name}-pairwise.tsv.gz", sep="\t")
+            df = pd.read_csv(f"{output2}/{model_name}-pairwise.tsv.gz", sep="\t")
             logger.info(df.shape)
             df = (
                 df.sort_values(by=["score"], ascending=False)
@@ -525,7 +526,7 @@ def filter_paiwise_file(model_name):
 
 # read BLUEBERT-EFO data and filter
 def filter_bert(ebi_df, efo_node_df):
-    df = pd.read_csv(f"data/efo_mk1_inference_top100_no_underscores.csv.gz")
+    df = pd.read_csv(f"paper/data/efo_mk1_inference_top100_no_underscores.csv.gz")
     # lowercase
     df['text_1'] = df['text_1'].str.lower()
     df['text_2'] = df['text_2'].str.lower()
@@ -548,7 +549,7 @@ def filter_bert(ebi_df, efo_node_df):
     df_top[["mapping_id", "manual", "prediction", "score"]].sort_values(
         by=["mapping_id", "score"]
     ).to_csv(
-        f"{output}/BLUEBERT-EFO-pairwise-filter.tsv.gz",
+        f"{output2}/BLUEBERT-EFO-pairwise-filter.tsv.gz",
         index=False,
         compression="gzip",
         sep="\t",
@@ -558,13 +559,13 @@ def filter_bert(ebi_df, efo_node_df):
 
 # create top pairs
 def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
-    f = f"{output}/{model_name}-top-{top_num}.tsv.gz"
+    f = f"{output2}/{model_name}-top-{top_num}.tsv.gz"
     if os.path.exists(f):
         logger.info(f"Top done {model_name}")
     else:
         logger.info(f"Reading {model_name}")
         try:
-            df = pd.read_csv(f"{output}/{model_name}-pairwise-filter.tsv.gz", sep="\t")
+            df = pd.read_csv(f"{output2}/{model_name}-pairwise-filter.tsv.gz", sep="\t")
         except:
             logger.info("Data do not exist for", model_name)
             return
@@ -606,7 +607,7 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
 
 # calculate weighted average
 def calc_weighted_average(model_name, top_num, mapping_types, ebi_df):
-    f = f"{output}/{model_name}-top-100.tsv.gz"
+    f = f"{output2}/{model_name}-top-100.tsv.gz"
     logger.info(f)
     res = []
     try:
@@ -635,7 +636,7 @@ def calc_weighted_average(model_name, top_num, mapping_types, ebi_df):
 def run_wa(mapping_types, mapping_name, ebi_df):
     top_nums = [1, 2, 5, 10, 20, 50, 100]
     for top_num in top_nums:
-        f = f"{output}/images/weighted-average-nx-{top_num}-{mapping_name}.png"
+        f = f"{output2}/images/weighted-average-nx-{top_num}-{mapping_name}.png"
         if os.path.exists(f):
             logger.info(f"{f} done")
         else:
@@ -656,7 +657,7 @@ def run_wa(mapping_types, mapping_name, ebi_df):
             logger.info(f'\n{df.head()}')
             df_melt = pd.melt(df, id_vars=["efo"])
             df_melt.rename(columns={"variable": "Model"}, inplace=True)
-            df_melt.to_csv(f'{output}/weighted-average-nx-{top_num}-{mapping_name}.csv',index=False)
+            df_melt.to_csv(f'{output2}/weighted-average-nx-{top_num}-{mapping_name}.csv',index=False)
             ax = sns.displot(
                 x="value",
                 hue="Model",
@@ -685,12 +686,12 @@ def describe_wa(wa_csv):
     ax.set(xlabel=f"Model/Method",ylabel="Weighted average of top 10 batet scores")
     ax.set_xticklabels(rotation=45, ha="right")
     # ax.set_xscale("log")
-    ax.savefig(f'{output}/images/wa-violin-plot.png', dpi=1000)
+    ax.savefig(f'{output2}/images/wa-violin-plot.png', dpi=1000)
 
 
 # create plot of number of correct top predictions for each model
 def get_top_hits(ebi_df, batet_score=1,category=''):
-    fig_f = f"{output}/images/top-counts-batet-{batet_score}-{category}.png"
+    fig_f = f"{output2}/images/top-counts-batet-{batet_score}-{category}.png"
     if os.path.exists(fig_f):
         logger.info(f'{fig_f} exists')
         #return
@@ -712,7 +713,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
 
     # for each model check top hits
     for i in modelData:
-        fName = f"{output}/{i['name']}-top-100.tsv.gz"
+        fName = f"{output2}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
         df = pd.read_csv(fName, sep="\t")
         df = pd.merge(
@@ -721,7 +722,8 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
             left_on="mapping_id",
             right_on="mapping_id",
         )
-        df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
+        # drop duplicates to keep top hit only
+        df.drop_duplicates(subset=["mapping_id","manual"], inplace=True)
 
         # add "Other" MAPPING_TYPE
         df.loc[~df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
@@ -763,7 +765,7 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     fig.savefig(fig_f, dpi=1000)
 
 def t_test(ebi_df):
-    f = f'{output}/all_top.csv'
+    f = f'{output2}/all_top.csv'
     if os.path.exists(f):
         all_df = pd.read_csv(f)
         logger.info(f'{f} done')
@@ -771,7 +773,7 @@ def t_test(ebi_df):
         all_df = ebi_df[['mapping_id']]
         # for each model check top hits
         for i in modelData:
-            fName = f"{output}/{i['name']}-top-100.tsv.gz"
+            fName = f"{output2}/{i['name']}-top-100.tsv.gz"
             logger.info(fName)
             df = pd.read_csv(fName, sep="\t")
             df.drop_duplicates(subset=["mapping_id"], inplace=True)
@@ -780,29 +782,40 @@ def t_test(ebi_df):
         all_df.drop('mapping_id',inplace=True,axis=1)
         all_df.to_csv(f,index=False)
     logger.info(f'\n{all_df}')
-    c = all_df.corr()
-    logger.info(c)
+    logger.info(f'\n{all_df["BLUEBERT-EFO"].value_counts()}')
+
+    #c = all_df.corr()
+    #logger.info(c)
 
     # create df for pairwise t-test
     results = pd.DataFrame(columns=all_df.columns, index=all_df.columns)
     # run t-test for each pair
+    r = []
     for (label1, column1), (label2, column2) in itertools.combinations(all_df.items(), 2):
-        results.loc[label1, label2] = results.loc[label2, label1] = scipy.stats.ttest_rel(column1, column2)
-    logger.info(f'\n{results}')
+        results.loc[label1, label2] = results.loc[label2, label1] = list(scipy.stats.ttest_rel(column1, column2))
+        t = list(scipy.stats.ttest_rel(column1, column2))
+        r.append({'s1':label1,'s2':label2,'test_stat':t[0],'p_val':t[1]})
+    logger.info(r)
+    df = pd.DataFrame(r)
+    #results.fillna(0,inplace=True)
+    #logger.info(f'\n{df}')
+    df.to_csv(f'{output2}/t-test.csv',index=False)
+    #ax = sns.clustermap(results)
+    #ax.savefig(f"{output2}/images/t-test.png", dpi=1000)
 
 # look at examples where predictions vary across model
 #  high = all high nx
 # low = all low nx
 # spread = high sd nx
 def run_high_low(type: str, ebi_df_exact, efo_node_df):
-    f = f"{output}/{type}-predictions.tsv"
+    f = f"{output2}/{type}-predictions.tsv"
     if os.path.exists(f):
         logger.info(f'{f} done')
         return
     match = []
     logger.info(f"\n##### {type} #####")
     for i in modelData:
-        fName = f"{output}/{i['name']}-top-100.tsv.gz"
+        fName = f"{output2}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
         df = pd.read_csv(fName, sep="\t")
         # maybe filter on exact mapping type
@@ -825,7 +838,7 @@ def run_high_low(type: str, ebi_df_exact, efo_node_df):
 
     # add the top prediction from each model to the missing df
     for i in modelData:
-        fName = f"{output}/{i['name']}-top-100.tsv.gz"
+        fName = f"{output2}/{i['name']}-top-100.tsv.gz"
         logger.info(fName)
         df = pd.read_csv(fName, sep="\t")
         df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
@@ -898,7 +911,7 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         #logger.info(f"{df[e]} {df[e].map(efo_dic)}")
         #df[model_efo_name] = df[e].map(efo_dic)
         # get the rank
-        top = pd.read_csv(f"{output}/{model}-top-100.tsv.gz", sep="\t")
+        top = pd.read_csv(f"{output2}/{model}-top-100.tsv.gz", sep="\t")
         #ogger.info(top)
         rank_vals = []
         for i, row in df.iterrows():
@@ -918,13 +931,13 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         df[model] = rank_vals
     df = df[keep_list]
     logger.info(f"\n{df}")
-    df.to_csv(f"{output}/all-{name}.csv", index=False)
+    df.to_csv(f"{output2}/all-{name}.csv", index=False)
     return df
 
 
 # run the high/low/spread examples
 def create_examples(efo_node_df):
-    ebi_df = pd.read_csv("paper/output/ebi-ukb-cleaned-cat.csv")
+    ebi_df = pd.read_csv(f"{output1}/ebi-ukb-cleaned-cat.csv")
     ebi_df_exact = ebi_df[ebi_df["MAPPING_TYPE"] == "Exact"]
     logger.info(ebi_df_exact.shape)
 
@@ -936,16 +949,16 @@ def create_examples(efo_node_df):
     run_high_low("high", ebi_df_exact, efo_node_df)
     run_high_low("spread", ebi_df_exact, efo_node_df)
 
-    df_low = pd.read_csv(f"{output}/low-predictions.tsv", sep="\t")
+    df_low = pd.read_csv(f"{output2}/low-predictions.tsv", sep="\t")
     logger.info(f"\n{df_low.head()}")
     logger.info(f"\n{df_low.columns}")
     df_low = tidy_up_and_get_rank(df_low, efo_node_df, "low")
 
-    df_high = pd.read_csv(f"{output}/high-predictions.tsv", sep="\t")
+    df_high = pd.read_csv(f"{output2}/high-predictions.tsv", sep="\t")
     df_high = tidy_up_and_get_rank(df_high, efo_node_df, "high")
 
     df_range = (
-        pd.read_csv(f"{output}/spread-predictions.tsv", sep="\t")
+        pd.read_csv(f"{output2}/spread-predictions.tsv", sep="\t")
         .sort_values("std", ascending=False)
         .head(n=20)
     )
@@ -1011,11 +1024,12 @@ def run():
 def dev():
     efo_node_df = efo_node_data_v1()
     ebi_df = get_ebi_data(efo_node_df)
-    #describe_wa(f'{output}/weighted-average-nx-10-all.csv')
+    #describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
     # create summary tophits plot
     logger.info(ebi_df)
-    t_test(ebi_df)
+    get_top_hits(ebi_df,batet_score=1,category="all")
+    #t_test(ebi_df)
 
 if __name__ == "__main__":
-    #run()
-    dev()
+    run()
+    #dev()
