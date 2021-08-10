@@ -526,7 +526,7 @@ def filter_paiwise_file(model_name):
 
 # read BLUEBERT-EFO data and filter
 def filter_bert(ebi_df, efo_node_df):
-    df = pd.read_csv(f"paper/data/efo_mk1_inference_top100_no_underscores.csv.gz")
+    df = pd.read_csv(f"paper/data/efo_bert_inference_top100_no_underscores.csv.gz")
     # lowercase
     df['text_1'] = df['text_1'].str.lower()
     df['text_2'] = df['text_2'].str.lower()
