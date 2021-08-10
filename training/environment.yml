@@ -1,0 +1,49 @@
+name: bert-training
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.7
+  - environs
+  - typer
+  - loguru
+  - requests
+  - pandas
+  - numpy
+  - scipy
+  - seaborn
+  - matplotlib
+  - tqdm
+  - spacy
+  - pytorch=1.6
+  - tensorboard
+  - pytorch-lightning=1.0.5
+  - scikit-learn
+  - papermill
+  - networkx
+  - wandb
+  - plotly
+  # dev stuff
+  - jupyterlab
+  - zsh
+  # also https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  - ipywidgets
+  - nodejs
+  - black
+  - mypy
+  - jedi
+  - isort
+  - autoflake
+  - flake8
+  - gpustat
+  # pip
+  - pip
+  - pip:
+    - pysbd
+    - ray
+    - transformers==3.3
+    - datasets
+    - nb_black
+    - tabview
+    - ontoma
