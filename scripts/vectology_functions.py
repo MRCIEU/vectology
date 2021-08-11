@@ -120,38 +120,3 @@ def create_efo_data(efo_data_file):
     edge_df = pd.DataFrame(edge_data)
     logger.info(edge_df)
     return node_df, edge_df
-
-def map_trait_to_cat():
-    ebi_ukb = 'output/ebi-ukb-cleaned.csv'
-    #ukb_coding = 'data/all_field_coding_description.tsv'
-    #ukb_cat = 'data/Data_Dictionary_Showcase_updated_02_05_19.csv'
-    ebi_df = pd.read_csv(ebi_ukb)
-    logger.info(f'\n{ebi_df.head()}')
-    logger.info(f'\n{ebi_df.shape}')
-    
-    #ukb_coding_df = pd.read_csv(ukb_coding,sep='\t',names=['Category','FieldID','Name'])
-    #logger.info(f'\n{ukb_coding_df.head()}')
-    #ukb_cat_df = pd.read_csv(ukb_cat)
-    #logger.info(f'\n{ukb_cat_df.head()}')
-
-    ebi_coding_df = pd.read_csv('data/ukbiobank_zooma_annotated.csv')
-    ebi_coding_df['PROPERTY_VALUE'] = ebi_coding_df['PROPERTY_VALUE'].str.lower()
-    ebi_coding_df.drop_duplicates(subset=['PROPERTY_VALUE'],inplace=True)
-    logger.info(f'\n{ebi_coding_df.head()}')
-
-    df = pd.merge(ebi_df,ebi_coding_df[['PROPERTY_VALUE','PROPERTY_TYPE','Type']],left_on='query',right_on='PROPERTY_VALUE',how='left')
-    logger.info(df.shape)    
-    
-    # find which query names are not in category df
-    cat_names = ebi_coding_df['PROPERTY_TYPE']
-    ebi_df_missing = ebi_df[~ebi_df['query'].isin(cat_names)]
-    logger.info(ebi_df_missing) 
-
-    # the missing PROPERTY_VALUE are disease so update
-    logger.info(df['PROPERTY_TYPE'].value_counts())
-    df.fillna('disease',inplace=True)
-    logger.info(df['PROPERTY_TYPE'].value_counts())
-    df.to_csv('output/ebi-ukb-cleaned-cat.csv',index=False)
-
-
-#map_trait_to_cat()
