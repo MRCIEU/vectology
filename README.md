@@ -1,3 +1,22 @@
+# Using language models and ontology topology to perform semantic mapping of traits between biomedical datasets
+
+## Components
+
+Set up [BERT serving API](apis/bert_service/README.md)
+
+TODO: Set up [BioSentVec serving API]()
+
+Set up [main API](apis/vectology_api/README.md)
+
+A complete setup of service components should look like
+(a user might need to change the various ports used by components)
+
+- Main Vectology API: `http://localhost:7560`
+- BERT model serving API: `http://localhost:8560`
+- BioSentVec serving API: `http://localhost:9090` (TODO)
+
+## Analysis
+
 ### Setup
 
 ```
@@ -29,3 +48,12 @@ Deduplication example using UK Biobank traits and BioSentVec
 ```
 python -m scripts.deduplicate
 ```
+
+#### BlueBERT-EFO analysis results
+
+Set up a [local development environment](training/README.md).
+
+Then obtain the [model package from repo releases](https://github.com/mrcieu/vectology/releases) 
+and add to the dev environment (for details see docs above).
+
+Then run the relevant analysis scripts (see the inference section of the docs above).
