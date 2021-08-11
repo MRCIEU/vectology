@@ -1,0 +1,5 @@
+venv3
+es-data
+elastic-backup
+*.tgz
+.env

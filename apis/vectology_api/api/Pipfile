@@ -1,0 +1,38 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+black = "*"
+mypy = "*"
+jedi = "*"
+pyment = "*"
+jupyterlab = "*"
+isort = "*"
+autoflake = "*"
+
+[packages]
+aiofiles = "*"
+click = "*"
+environs = "*"
+fastapi = "*"
+flake8 = "*"
+loguru = "*"
+pytest = "*"
+requests = "*"
+uvicorn = "*"
+pandas = "*"
+numpy = "*"
+scipy = "*"
+xarray = "*"
+elasticsearch = "*"
+spacy = "*"
+scispacy = "==0.2.3"
+pytest-clarity = "*"
+
+[requires]
+python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

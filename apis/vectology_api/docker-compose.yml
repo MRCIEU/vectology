@@ -1,0 +1,15 @@
+version: "3.3"
+services:
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: /start-reload.sh
+    volumes:
+      - ./api:/app
+      - ./api/data:/app/data
+    ports:
+      - ${API_PORT:-7560}:80
+

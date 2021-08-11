@@ -3,9 +3,6 @@ from environs import Env
 env = Env()
 env.read_env()
 
-web_domain = env.str("WEB_DOMAIN", "localhost")
-web_port = env.str("WEB_PORT", "8080")
-
 bert_config_prod = [
     {
         "ip": "bert1",
