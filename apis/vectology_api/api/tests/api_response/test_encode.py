@@ -52,14 +52,3 @@ def test_post_encode(text_list, model_name):
     assert response.status_code == 200
     assert list(res.keys()) == ["embeddings"]
     assert len(res["embeddings"]) >= 1
-
-
-def test_post_encode_length():
-    text_list = ["foobar" for _ in range(51)]
-    response = client.post(
-        url,
-        data=json.dumps({"text_list": text_list, "model_name": "BioSentVec"}),
-    )
-    res = response.json()
-    assert response.status_code == 400
-    assert res == {"detail": "Too many items. Limit: 50."}

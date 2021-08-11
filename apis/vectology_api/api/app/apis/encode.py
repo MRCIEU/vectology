@@ -35,7 +35,7 @@ def get_encode(text: str, model_name: Optional[settings.ModelName] = None):
     """
     logger.info(f"text: {text}\tmodel_name: {model_name}")
     if model_name is None:
-        model_name = settings.ModelName.biosentvec
+        model_name = settings.ModelName.ncbi_bert_pubmed_mimic_uncased_base
 
     if model_name.value in settings.bert_models:
         res = get_encode_bert(text=text, model_name=model_name.value)

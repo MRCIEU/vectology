@@ -13,7 +13,6 @@ A complete setup of service components should look like
 
 - Main Vectology API: `http://localhost:7560`
 - BERT model serving API: `http://localhost:8560`
-- BioSentVec serving API: `http://localhost:9090` (TODO)
 
 ## Analysis
 
