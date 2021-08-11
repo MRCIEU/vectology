@@ -4,8 +4,6 @@
 
 Set up [BERT serving API](apis/bert_service/README.md)
 
-TODO: Set up [BioSentVec serving API]()
-
 Set up [main API](apis/vectology_api/README.md)
 
 A complete setup of service components should look like
