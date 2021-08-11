@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - WEB_DOMAIN=${WEB_DOMAIN}
+      - WEB_PORT=${WEB_PORT:-8570}
+      - API_ENV=prod
+      - WEB_CONCURRENCY=4
+    ports:
+      - ${API_PORT:-8560}:80
+
+  bert1:
+    build:
+      context: ./bert
+      dockerfile: docker/Dockerfile-bert-cpu
+    restart: unless-stopped
+    environment:
+      - NUM_WORKER=${BERT_NUM_WORKER:-2}
+    volumes:
+      - ./bert/models/NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12:/model
+    ports:
+      - ${BERT_PORT:-8555}:5555
+      - ${BERT_PORT_OUT:-8556}:5556
+
+  bert2:
+    build:
+      context: ./bert
+      dockerfile: docker/Dockerfile-bert-cpu
+    restart: unless-stopped
+    environment:
+      - NUM_WORKER=${BERT_NUM_WORKER:-2}
+    volumes:
+      - ./bert/models/biobert_v1.1_pubmed:/model
+    ports:
+      - ${BERT_PORT:-8557}:5555
+      - ${BERT_PORT_OUT:-8558}:5556
