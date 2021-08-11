@@ -12,7 +12,8 @@ from loguru import logger
 #vectology api 
 #function to get filtered text
 def filter_text(textList):
-    url='http://vectology-api.mrcieu.ac.uk/preprocess'
+    # this is the main API required to set up (see repo docs)
+    url='http://localhost:7560/preprocess'
     payload={
         "text_list":textList,
         "source":"ukbb"
@@ -23,7 +24,8 @@ def filter_text(textList):
 
 #function to get embedding
 def embed_text(textList,model):
-    url='http://vectology-api.mrcieu.ac.uk/encode'
+    # this is the main API required to set up (see repo docs)
+    url='http://localhost:7560/encode'
     payload={
         "text_list":textList,
         "model_name":model
