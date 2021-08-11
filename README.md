@@ -41,14 +41,6 @@ Pair-wise UK Biobank trait mappings using various models
 python -m paper.ukb_ukb
 ```
 
-#### Deduplication example
-
-Deduplication example using UK Biobank traits and BioSentVec
-
-```
-python -m scripts.deduplicate
-```
-
 #### BlueBERT-EFO analysis results
 
 Set up a [local development environment](training/README.md).
