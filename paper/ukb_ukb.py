@@ -69,6 +69,7 @@ def create_nx():
     efo_nx.freeze()
     return efo_nx
 
+
 def read_ebi():
     # read cleaned EBI data
     ebi_df = pd.read_csv("output/ebi-ukb-cleaned.csv")
@@ -85,7 +86,7 @@ def read_ebi():
     logger.info(ebi_df_dedup.shape)
     logger.info(ebi_df_dedup["MAPPING_TYPE"].value_counts())
 
-    ebi_df_dedup.to_csv(f"{output}/ebi_exact.tsv.gz", sep="\t",index=False)
+    ebi_df_dedup.to_csv(f"{output}/ebi_exact.tsv.gz", sep="\t", index=False)
     # ebi_df_dedup = ebi_df_dedup.head(n=10)
     return ebi_df, ebi_df_dedup
 
@@ -191,7 +192,7 @@ def create_aaa():
                 aaa = create_aaa_distances(dd)
                 np.save(f2, aaa)
             else:
-                logger.info(f'{f1} does not exist')
+                logger.info(f"{f1} does not exist")
 
 
 def write_to_file(model_name, pairwise_data, ebi_df_all, ebi_df_filt):
@@ -286,8 +287,8 @@ def create_pairwise_bert_efo(ebi_df):
         logger.info(f"{f} done")
     else:
         be_df = pd.read_csv(f"data/BLUEBERT-EFO-ebi-query-pairwise.csv.gz")
-        be_df['text_1'] = be_df['text_1'].str.lower()
-        be_df['text_2'] = be_df['text_2'].str.lower()
+        be_df["text_1"] = be_df["text_1"].str.lower()
+        be_df["text_2"] = be_df["text_2"].str.lower()
         be_df.rename(columns={"text_1": "q1", "text_2": "q2"}, inplace=True)
         dedup_query_list = list(ebi_df["query"])
         be_df = be_df[
@@ -353,11 +354,13 @@ def com_scores():
     ax = sns.clustermap(spearman)
     ax.savefig(f"{output}/images/spearman.png", dpi=1000)
 
-def score_dist(df,model,term):
+
+def score_dist(df, model, term):
     plt.figure(figsize=(16, 7))
     sns.displot(df, x=model, kind="kde")
     plt.savefig(f"{output}/images/sample-scores-{model}-{term}.png", dpi=1000)
     plt.close()
+
 
 def compare_models_with_sample(sample, term):
     logger.info(f"Comparing models with {sample}")
@@ -371,7 +374,7 @@ def compare_models_with_sample(sample, term):
         com_sample = com_scores_df[
             com_scores_df["q1"].isin(sample) & com_scores_df["q2"].isin(sample)
         ][["q1", "q2", model]]
-        logger.info(f'\n{com_sample}')
+        logger.info(f"\n{com_sample}")
         # add matching pair with score 1
         for i in sample:
             df = pd.DataFrame([[i, i, 1]], columns=["q1", "q2", model])
@@ -387,16 +390,16 @@ def compare_models_with_sample(sample, term):
         com_sample.drop_duplicates(inplace=True)
 
         # plot score distribution
-        score_dist(df=com_sample,model=model,term=term)
+        score_dist(df=com_sample, model=model, term=term)
 
-        #logger.info(f"\n{com_sample}")
+        # logger.info(f"\n{com_sample}")
         com_sample = com_sample.pivot(index="q1", columns="q2", values=model)
         # check for missing data
         missing = com_sample[com_sample.isna().any(axis=1)]
         logger.info(missing.shape)
         logger.info(missing.columns)
-        logger.info(f'\n{missing}')
-     
+        logger.info(f"\n{missing}")
+
         com_sample = com_sample.fillna(1)
 
         # 1 minus to work with mantel
@@ -431,9 +434,10 @@ def term_sample(term):
     sample = list(df["query"])[:30]
     return sample
 
+
 def string_length():
     df = pd.read_csv(f"{output}/ebi_exact.tsv.gz", sep="\t")
-    str_sorted = sorted(df["query"],key=len)
+    str_sorted = sorted(df["query"], key=len)
     return str_sorted
 
 
@@ -506,8 +510,8 @@ def manual_samples():
         "worrier / anxious feelings",
         "longest period of depression",
         "other respiratory problems",
-        "sitting height"    
-        ]
+        "sitting height",
+    ]
     sample = sample2
     sample = [x.lower() for x in sample]
     return sample
@@ -543,35 +547,36 @@ def run_mantel(term):
 
 def sample_checks():
 
-    #term = "neoplasm"
-    #term = "disease"
-    #compare_models_with_sample(sample=sample, term=term)
-    #sample = term_sample(term=term)
-    #run_mantel(term)
+    # term = "neoplasm"
+    # term = "disease"
+    # compare_models_with_sample(sample=sample, term=term)
+    # sample = term_sample(term=term)
+    # run_mantel(term)
 
-    #term = "random"
-    #sample = create_random_queries()
-    #compare_models_with_sample(sample=sample, term=term)
-    #run_mantel(term)
+    # term = "random"
+    # sample = create_random_queries()
+    # compare_models_with_sample(sample=sample, term=term)
+    # run_mantel(term)
 
     term = "manual"
     sample = manual_samples()
     compare_models_with_sample(sample=sample, term="manual")
     run_mantel(term)
-    
+
     # smallest
-    #term = "smallest"
-    #str_sorted = string_length()
-    #smallest = str_sorted[:20]
-    #compare_models_with_sample(sample=smallest, term=term)
-    #run_mantel(term)
+    # term = "smallest"
+    # str_sorted = string_length()
+    # smallest = str_sorted[:20]
+    # compare_models_with_sample(sample=smallest, term=term)
+    # run_mantel(term)
 
     # longest
-    #term = "longest"
-    #str_sorted = string_length()
-    #smallest = str_sorted[-20:]
-    #compare_models_with_sample(sample=smallest, term=term)
-    #run_mantel(term)
+    # term = "longest"
+    # str_sorted = string_length()
+    # smallest = str_sorted[-20:]
+    # compare_models_with_sample(sample=smallest, term=term)
+    # run_mantel(term)
+
 
 def run():
     efo_nx = create_nx()
@@ -588,8 +593,8 @@ def run():
 
 def dev():
     efo_nx = create_nx()
-    ebi_all,ebi_filt = read_ebi()
-    create_nx_pairs_nr(ebi_filt,efo_nx)
+    ebi_all, ebi_filt = read_ebi()
+    create_nx_pairs_nr(ebi_filt, efo_nx)
     # create_aaa()
     # create_pairwise(ebi_all,ebi_filt)
     # create_pairwise_bert_efo(ebi_filt)
@@ -597,6 +602,7 @@ def dev():
     com_scores()
     sample_checks()
 
+
 if __name__ == "__main__":
     dev()
-    #run()
+    # run()

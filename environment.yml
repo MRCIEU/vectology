@@ -3,6 +3,7 @@ name: Vectology
 channels:
   - anaconda
   - conda-forge
+  - akode
 
 dependencies:
   - python=3.7
@@ -26,6 +27,7 @@ dependencies:
   - netCDF4 
   - bottleneck
   - nltk
+  - sent2vec
   - pip
   - pip:
     - nxontology

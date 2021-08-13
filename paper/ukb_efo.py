@@ -15,7 +15,7 @@ import Levenshtein
 import itertools
 import scipy
 
-#biosentvec
+# biosentvec
 import sent2vec
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -87,6 +87,7 @@ def get_data():
             f"wget -O {biosentvec_model} https://ftp.ncbi.nlm.nih.gov/pub/lu/Suppl/BioSentVec/BioSentVec_PubMed_MIMICIII-bigram_d700.bin"
         )
 
+
 # read EFO node data
 def efo_node_data():
     # get EFO node data
@@ -95,9 +96,9 @@ def efo_node_data():
     # drop type
     df.drop(["efo.type"], inplace=True, axis=1)
     # lowercase the label
-    df['efo_label'] = df['efo_label'].str.lower()
-    # drop duplicates by name 
-    df.drop_duplicates(subset=['efo_label'],inplace=True)
+    df["efo_label"] = df["efo_label"].str.lower()
+    # drop duplicates by name
+    df.drop_duplicates(subset=["efo_label"], inplace=True)
     logger.info(f"\n{df}")
     logger.info({df.shape})
     return df
@@ -240,19 +241,25 @@ def bert_encode_efo(efo_node_df):
                 # logger.info(f'Results {results}')
                 np.save(f, results)
 
+
 # create BioSenvVec embeddings
 def preprocess_sentence(text):
-    
-    stop_words = set(stopwords.words('english'))
-    text = text.replace('/', ' / ')
-    text = text.replace('.-', ' .- ')
-    text = text.replace('.', ' . ')
-    text = text.replace('\'', ' \' ')
+
+    stop_words = set(stopwords.words("english"))
+    text = text.replace("/", " / ")
+    text = text.replace(".-", " .- ")
+    text = text.replace(".", " . ")
+    text = text.replace("'", " ' ")
     text = text.lower()
 
-    tokens = [token for token in word_tokenize(text) if token not in punctuation and token not in stop_words]
+    tokens = [
+        token
+        for token in word_tokenize(text)
+        if token not in punctuation and token not in stop_words
+    ]
 
-    return ' '.join(tokens)
+    return " ".join(tokens)
+
 
 def run_biosentvec(ebi_df, efo_node_df):
     f1 = f"{output1}/BioSentVec-ebi-encode.npy"
@@ -268,24 +275,21 @@ def run_biosentvec(ebi_df, efo_node_df):
             model.load_model(model_path)
         except Exception as e:
             print(e)
-        print('model successfully loaded')
-
+        print("model successfully loaded")
 
         # ukb queries
-        ebi_res=[]
-        for t in ebi_df["query"]
+        ebi_res = []
+        for t in ebi_df["query"]:
             sentence_vector = model.embed_sentence(preprocess_sentence(t))
             ebi_res.append(sentence_vector[0])
         np.save(f1, ebi_res)
 
         # efo
-        efo_res=[]
-        for t in efo_node_df["efo_label"]
+        efo_res = []
+        for t in efo_node_df["efo_label"]:
             sentence_vector = model.embed_sentence(preprocess_sentence(t))
             ebi_res.append(sentence_vector[0])
         np.save(f2, efo_res)
-        
-
 
 
 # create GUSE embeddings for EBI and EFO
@@ -426,15 +430,15 @@ def write_to_file(model_name, pairwise_data, ebi_df, efo_node_df):
                 score = 1 - pairwise_data[i][j]
                 d.append(
                     {
-                    'mapping_id':i+1,
-                    'manual':ebi_efo_list[i],
-                    'prediction':efo_list[j],
-                    'score':score
+                        "mapping_id": i + 1,
+                        "manual": ebi_efo_list[i],
+                        "prediction": efo_list[j],
+                        "score": score,
                     }
                 )
                 mCount += 1
         df = pd.DataFrame(d)
-        df.to_csv(f,sep='\t',index=False)
+        df.to_csv(f, sep="\t", index=False)
 
 
 # wrapper for above
@@ -565,8 +569,8 @@ def filter_bert(ebi_df, efo_node_df):
     # need to get this file from the BLUEBERT-EFO API
     df = pd.read_csv(f"paper/input/efo_bert_inference_top100_no_underscores.csv.gz")
     # lowercase
-    df['text_1'] = df['text_1'].str.lower()
-    df['text_2'] = df['text_2'].str.lower()
+    df["text_1"] = df["text_1"].str.lower()
+    df["text_2"] = df["text_2"].str.lower()
     df_top = df.sort_values(by=["score"]).groupby("text_1").head(top_x)
     df_top = pd.merge(
         df_top,
@@ -609,22 +613,22 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
         logger.info(df.head())
         logger.info(df.shape)
         # remove duplicates
-        #df.drop_duplicates(subset=["mapping_id","manual", "prediction"], inplace=True)
+        # df.drop_duplicates(subset=["mapping_id","manual", "prediction"], inplace=True)
         top_res = []
-        #mapping_ids = list(ebi_df["mapping_id"].unique())
-        for i,row_i in ebi_df.iterrows():
+        # mapping_ids = list(ebi_df["mapping_id"].unique())
+        for i, row_i in ebi_df.iterrows():
             # for i in range(0,10):
-            mapping_id = row_i['mapping_id']
+            mapping_id = row_i["mapping_id"]
             efo_predictions = df[df["mapping_id"] == mapping_id].head(n=top_num)[
                 ["prediction", "score"]
             ]
             # end = time.time()
             # run nxontology for each
             for j, row_j in efo_predictions.iterrows():
-                manual_efo = row_i['full_id']
+                manual_efo = row_i["full_id"]
                 predicted_efo = row_j["prediction"]
                 score = row_j["score"]
-                try:                        
+                try:
                     res = efo_nx.similarity(manual_efo, predicted_efo).results()
                     nx_val = res[nxontology_measure]
                 except:
@@ -632,7 +636,7 @@ def get_top_using_pairwise_file(model_name, top_num, efo_nx, ebi_df):
                 top_res.append(
                     {
                         "mapping_id": i + 1,
-                        "manual": row_i['full_id'],
+                        "manual": row_i["full_id"],
                         "prediction": predicted_efo,
                         "score": score,
                         "nx": nx_val,
@@ -691,10 +695,13 @@ def run_wa(mapping_types, mapping_name, ebi_df):
 
             df = pd.DataFrame(all_res)
             df["efo"] = ebi_df["full_id"]
-            logger.info(f'\n{df.head()}')
+            logger.info(f"\n{df.head()}")
             df_melt = pd.melt(df, id_vars=["efo"])
             df_melt.rename(columns={"variable": "Model"}, inplace=True)
-            df_melt.to_csv(f'{output2}/weighted-average-nx-{top_num}-{mapping_name}.csv',index=False)
+            df_melt.to_csv(
+                f"{output2}/weighted-average-nx-{top_num}-{mapping_name}.csv",
+                index=False,
+            )
             ax = sns.displot(
                 x="value",
                 hue="Model",
@@ -710,39 +717,48 @@ def run_wa(mapping_types, mapping_name, ebi_df):
             # ax.set_xscale("log")
             ax.savefig(f, dpi=1000)
 
+
 def describe_wa(wa_csv):
     df = pd.read_csv(wa_csv)
-    logger.info(f'\n{df.head()}') 
-    d = df.groupby('Model').describe()
+    logger.info(f"\n{df.head()}")
+    d = df.groupby("Model").describe()
     logger.info(d)
     # violin plot
-    mean_order = df.groupby('Model')['value'].mean().reset_index().sort_values('value',ascending=False)['Model']
+    mean_order = (
+        df.groupby("Model")["value"]
+        .mean()
+        .reset_index()
+        .sort_values("value", ascending=False)["Model"]
+    )
     logger.info(mean_order)
-    ax = sns.catplot(x="Model",y="value",
-               data=df, kind="violin", order=mean_order, palette=palette)
-    ax.set(xlabel=f"Model/Method",ylabel="Weighted average of top 10 batet scores")
+    ax = sns.catplot(
+        x="Model", y="value", data=df, kind="violin", order=mean_order, palette=palette
+    )
+    ax.set(xlabel=f"Model/Method", ylabel="Weighted average of top 10 batet scores")
     ax.set_xticklabels(rotation=45, ha="right")
     # ax.set_xscale("log")
-    ax.savefig(f'{output2}/images/wa-violin-plot.png', dpi=1000)
+    ax.savefig(f"{output2}/images/wa-violin-plot.png", dpi=1000)
 
 
 # create plot of number of correct top predictions for each model
-def get_top_hits(ebi_df, batet_score=1,category=''):
+def get_top_hits(ebi_df, batet_score=1, category=""):
     fig_f = f"{output2}/images/top-counts-batet-{batet_score}-{category}.png"
     if os.path.exists(fig_f):
-        logger.info(f'{fig_f} exists')
-        #return
-    logger.info(f'{category} {batet_score}')
+        logger.info(f"{fig_f} exists")
+        # return
+    logger.info(f"{category} {batet_score}")
     logger.info(ebi_df.shape)
 
     # stratify by category
-    if category != 'all':
-        ebi_df = ebi_df[ebi_df['MAPPING_TYPE']==category]
+    if category != "all":
+        ebi_df = ebi_df[ebi_df["MAPPING_TYPE"] == category]
         logger.info(ebi_df.shape)
 
     res = []
     # add manual mapping info
-    ebi_df.loc[~ebi_df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
+    ebi_df.loc[
+        ~ebi_df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"
+    ] = "Other"
     d = dict(ebi_df["MAPPING_TYPE"].value_counts())
     d["Model"] = "Manual"
     d["Total"] = ebi_df.shape[0]
@@ -760,11 +776,13 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
             right_on="mapping_id",
         )
         # drop duplicates to keep top hit only
-        df.drop_duplicates(subset=["mapping_id","manual"], inplace=True)
+        df.drop_duplicates(subset=["mapping_id", "manual"], inplace=True)
 
         # add "Other" MAPPING_TYPE
-        df.loc[~df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"] = "Other"
-        logger.info(f'\n{df.columns}')
+        df.loc[
+            ~df["MAPPING_TYPE"].isin(["Exact", "Broad", "Narrow"]), "MAPPING_TYPE"
+        ] = "Other"
+        logger.info(f"\n{df.columns}")
 
         # filter by mapping_type
         d = dict(df[df["nx"] >= batet_score]["MAPPING_TYPE"].value_counts())
@@ -772,22 +790,20 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
         d["Total"] = df[df["nx"] >= batet_score].shape[0]
         res.append(d)
 
-    #logger.info(res)
+    # logger.info(res)
     res_df = pd.DataFrame(res).sort_values(by="Total", ascending=False)
-    totals = list(res_df['Total'])
+    totals = list(res_df["Total"])
     # drop totals from plot
-    res_df.drop(columns=['Total'],inplace=True)
+    res_df.drop(columns=["Total"], inplace=True)
     logger.info(res_df.columns)
     logger.info(res_df)
     logger.info(res_df.shape)
-    #if res_df.shape[1]==1:
+    # if res_df.shape[1]==1:
     #    logger.warning('No data for plot')
     #    return
-    ax = res_df.plot.bar(
-        stacked=True, figsize=(10, 10)
-    )
+    ax = res_df.plot.bar(stacked=True, figsize=(10, 10))
     ax.set_xticklabels(res_df["Model"], rotation=45, ha="right")
-    
+
     # add totals
     logger.info(totals)
 
@@ -795,50 +811,56 @@ def get_top_hits(ebi_df, batet_score=1,category=''):
     y_offset = 4
     # Add labels to each bar.
     for i, total in enumerate(totals):
-        logger.info(f'{i} {total}')
-        ax.text(i, total + y_offset, round(total), ha='center',weight='bold')
-    
+        logger.info(f"{i} {total}")
+        ax.text(i, total + y_offset, round(total), ha="center", weight="bold")
+
     fig = ax.get_figure()
     fig.savefig(fig_f, dpi=1000)
 
+
 def t_test(ebi_df):
-    f = f'{output2}/all_top.csv'
+    f = f"{output2}/all_top.csv"
     if os.path.exists(f):
         all_df = pd.read_csv(f)
-        logger.info(f'{f} done')
+        logger.info(f"{f} done")
     else:
-        all_df = ebi_df[['mapping_id']]
+        all_df = ebi_df[["mapping_id"]]
         # for each model check top hits
         for i in modelData:
             fName = f"{output2}/{i['name']}-top-100.tsv.gz"
             logger.info(fName)
             df = pd.read_csv(fName, sep="\t")
             df.drop_duplicates(subset=["mapping_id"], inplace=True)
-            all_df = pd.merge(all_df,df[['mapping_id','nx']],on='mapping_id')
-            all_df.rename(columns={'nx':i['name']},inplace=True)
-        all_df.drop('mapping_id',inplace=True,axis=1)
-        all_df.to_csv(f,index=False)
-    logger.info(f'\n{all_df}')
+            all_df = pd.merge(all_df, df[["mapping_id", "nx"]], on="mapping_id")
+            all_df.rename(columns={"nx": i["name"]}, inplace=True)
+        all_df.drop("mapping_id", inplace=True, axis=1)
+        all_df.to_csv(f, index=False)
+    logger.info(f"\n{all_df}")
     logger.info(f'\n{all_df["BLUEBERT-EFO"].value_counts()}')
 
-    #c = all_df.corr()
-    #logger.info(c)
+    # c = all_df.corr()
+    # logger.info(c)
 
     # create df for pairwise t-test
     results = pd.DataFrame(columns=all_df.columns, index=all_df.columns)
     # run t-test for each pair
     r = []
-    for (label1, column1), (label2, column2) in itertools.combinations(all_df.items(), 2):
-        results.loc[label1, label2] = results.loc[label2, label1] = list(scipy.stats.ttest_rel(column1, column2))
+    for (label1, column1), (label2, column2) in itertools.combinations(
+        all_df.items(), 2
+    ):
+        results.loc[label1, label2] = results.loc[label2, label1] = list(
+            scipy.stats.ttest_rel(column1, column2)
+        )
         t = list(scipy.stats.ttest_rel(column1, column2))
-        r.append({'s1':label1,'s2':label2,'test_stat':t[0],'p_val':t[1]})
+        r.append({"s1": label1, "s2": label2, "test_stat": t[0], "p_val": t[1]})
     logger.info(r)
     df = pd.DataFrame(r)
-    #results.fillna(0,inplace=True)
-    #logger.info(f'\n{df}')
-    df.to_csv(f'{output2}/t-test.csv',index=False)
-    #ax = sns.clustermap(results)
-    #ax.savefig(f"{output2}/images/t-test.png", dpi=1000)
+    # results.fillna(0,inplace=True)
+    # logger.info(f'\n{df}')
+    df.to_csv(f"{output2}/t-test.csv", index=False)
+    # ax = sns.clustermap(results)
+    # ax.savefig(f"{output2}/images/t-test.png", dpi=1000)
+
 
 # look at examples where predictions vary across model
 #  high = all high nx
@@ -847,7 +869,7 @@ def t_test(ebi_df):
 def run_high_low(type: str, ebi_df_exact, efo_node_df):
     f = f"{output2}/{type}-predictions.tsv"
     if os.path.exists(f):
-        logger.info(f'{f} done')
+        logger.info(f"{f} done")
         return
     match = []
     logger.info(f"\n##### {type} #####")
@@ -935,7 +957,7 @@ def run_high_low(type: str, ebi_df_exact, efo_node_df):
 # output tidy files from above
 def tidy_up_and_get_rank(df, efo_node_df, name):
     efo_cols = [col for col in df.columns if col.endswith("efo")]
-    #efo_dic = dict(zip(efo_node_df["efo_id"], efo_node_df["efo_label"]))
+    # efo_dic = dict(zip(efo_node_df["efo_id"], efo_node_df["efo_label"]))
     # logger.info(efo_cols)
     keep_list = ["query", "MAPPED_TERM_LABEL", "Type"]
     # efo_cols=['SequenceMatcher-efo']
@@ -945,16 +967,16 @@ def tidy_up_and_get_rank(df, efo_node_df, name):
         keep_list.append(model)
         model_efo_name = f"{model}-efo-name"
         model_nx = f"{model}-nx"
-        #logger.info(f"{df[e]} {df[e].map(efo_dic)}")
-        #df[model_efo_name] = df[e].map(efo_dic)
+        # logger.info(f"{df[e]} {df[e].map(efo_dic)}")
+        # df[model_efo_name] = df[e].map(efo_dic)
         # get the rank
         top = pd.read_csv(f"{output2}/{model}-top-100.tsv.gz", sep="\t")
-        #ogger.info(top)
+        # ogger.info(top)
         rank_vals = []
         for i, row in df.iterrows():
             mapping_id = row["mapping_id"]
             full_id = row["full_id"]
-            #logger.info(f"#### {full_id}")
+            # logger.info(f"#### {full_id}")
             top_match_df = top[top["mapping_id"] == mapping_id].reset_index()
             # find manual efo in top
             match_rank = top_match_df[top_match_df["prediction"] == full_id]
@@ -1047,19 +1069,20 @@ def run():
     run_wa(
         mapping_types=["Broad", "Narrow"], mapping_name="broad-narrow", ebi_df=ebi_df
     )
-    describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
+    describe_wa(f"{output2}/weighted-average-nx-10-all.csv")
 
     # create summary tophits plot
     cats = ["Exact", "Broad", "Narrow"]
     # run over a range of batet filters
-    for i in range(5,11):
+    for i in range(5, 11):
         # run for each variable category
         for c in cats:
-            get_top_hits(ebi_df,batet_score=i/10,category=c)
+            get_top_hits(ebi_df, batet_score=i / 10, category=c)
         # run for all cats
-        get_top_hits(ebi_df,batet_score=i/10,category='all')
+        get_top_hits(ebi_df, batet_score=i / 10, category="all")
     # create high/low/spread tables
     create_examples(efo_node_df)
+
 
 if __name__ == "__main__":
     run()
