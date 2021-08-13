@@ -14,6 +14,14 @@ import spacy
 import Levenshtein
 import itertools
 import scipy
+
+#biosentvec
+import sent2vec
+from nltk import word_tokenize
+from nltk.corpus import stopwords
+from string import punctuation
+from scipy.spatial import distance
+
 from scripts.vectology_functions import (
     create_aaa_distances,
     create_pair_distances,
@@ -30,11 +38,10 @@ import seaborn as sns
 sns.set_theme()
 
 # globals
-ebi_data = "paper/data/UK_Biobank_master_file.tsv"
-efo_nodes_v1 = "paper/data/efo_nodes_2021_02_01.csv"
-efo_rels_v1 = "paper/data/efo_edges_2021_02_01.csv"
-efo_nodes_v2 = "paper/data/efo_nodes_2021_05_26.csv"
-efo_rels_v2 = "paper/data/efo_edges_2021_05_26.csv"
+ebi_data = "paper/input/UK_Biobank_master_file.tsv"
+efo_nodes = "paper/input/efo_nodes_2021_02_01.csv"
+efo_rels = "paper/input/efo_edges_2021_02_01.csv"
+biosentvec_model = "paper/input/pubmed2018_w2v_200D.bin"
 nxontology_measure = "batet"
 top_x = 100
 
@@ -71,37 +78,19 @@ def get_data():
     if not os.path.exists(ebi_data):
         logger.info(f"Downloading {ebi_data}...")
         os.system(
-            "wget -O paper/data/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv"
+            "wget -O paper/input/UK_Biobank_master_file.tsv https://raw.githubusercontent.com/EBISPOT/EFO-UKB-mappings/master/UK_Biobank_master_file.tsv"
         )
-    # get the EFO data
-    if not os.path.exists(efo_nodes):
-        logger.info(f"Downloading efo.json...")
+    # get the Biosentvec model
+    if not os.path.exists(biosentvec_model):
+        logger.info(f"Downloading {biosentvec_model}...")
         os.system(
-            "wget -O paper/data/efo.json https://github.com/EBISPOT/efo/releases/download/v3.29.1/efo.json"
+            f"wget -O {biosentvec_model} https://ftp.ncbi.nlm.nih.gov/pub/lu/Suppl/BioSentVec/BioSentVec_PubMed_MIMICIII-bigram_d700.bin"
         )
-        node_df, edge_df = create_efo_data("paper/data/efo.json")
-        node_df.to_csv(efo_nodes, index=False)
-        edge_df.to_csv(efo_rels, index=False)
-
 
 # read EFO node data
-def efo_node_data_v2():
+def efo_node_data():
     # get EFO node data
     df = pd.read_csv(efo_nodes)
-    df.rename(columns={"lbl": "efo_label", "id": "efo_id"}, inplace=True)
-    # drop type
-    df.drop(["definition", "umls"], inplace=True, axis=1)
-    # lowercase the label
-    df['efo_label'] = df['efo_label'].str.lower()
-    df.drop_duplicates(inplace=True)
-    logger.info(f"\n{df}")
-    logger.info({df.shape})
-    return df
-
-
-def efo_node_data_v1():
-    # get EFO node data
-    df = pd.read_csv(efo_nodes_v1)
     df.rename(columns={"efo.value": "efo_label", "efo.id": "efo_id"}, inplace=True)
     # drop type
     df.drop(["efo.type"], inplace=True, axis=1)
@@ -196,12 +185,12 @@ def get_ebi_data(efo_node_df):
     return ebi_df
 
 
-# encode the EBI query terms with Vectology models
-def encode_ebi(ebi_df):
+# encode the EBI query terms with BERT models
+def bert_encode_ebi(ebi_df):
     queries = list(ebi_df["query"])
     chunk = 10
 
-    vectology_models = ["BioSentVec", "BioBERT", "BlueBERT"]
+    vectology_models = ["BioBERT", "BlueBERT"]
 
     for m in modelData:
         name = m["name"]
@@ -224,12 +213,12 @@ def encode_ebi(ebi_df):
                 np.save(f, results)
 
 
-# embed the efo node names with Vectology models
-def encode_efo(efo_node_df):
+# embed the efo node names with BERT models
+def bert_encode_efo(efo_node_df):
     queries = list(efo_node_df["efo_label"])
     chunk = 20
 
-    vectology_models = ["BioSentVec", "BioBERT", "BlueBERT"]
+    vectology_models = ["BioBERT", "BlueBERT"]
 
     for m in modelData:
         name = m["name"]
@@ -250,6 +239,53 @@ def encode_efo(efo_node_df):
                         results.append(r)
                 # logger.info(f'Results {results}')
                 np.save(f, results)
+
+# create BioSenvVec embeddings
+def preprocess_sentence(text):
+    
+    stop_words = set(stopwords.words('english'))
+    text = text.replace('/', ' / ')
+    text = text.replace('.-', ' .- ')
+    text = text.replace('.', ' . ')
+    text = text.replace('\'', ' \' ')
+    text = text.lower()
+
+    tokens = [token for token in word_tokenize(text) if token not in punctuation and token not in stop_words]
+
+    return ' '.join(tokens)
+
+def run_biosentvec(ebi_df, efo_node_df):
+    f1 = f"{output1}/BioSentVec-ebi-encode.npy"
+    f2 = f"{output1}/BioSentVec-efo-encode.npy"
+    if os.path.exists(f2):
+        logger.info(f"{f2} done")
+    else:
+
+        # load the model
+        model_path = YOUR_MODEL_LOCATION
+        model = sent2vec.Sent2vecModel()
+        try:
+            model.load_model(model_path)
+        except Exception as e:
+            print(e)
+        print('model successfully loaded')
+
+
+        # ukb queries
+        ebi_res=[]
+        for t in ebi_df["query"]
+            sentence_vector = model.embed_sentence(preprocess_sentence(t))
+            ebi_res.append(sentence_vector[0])
+        np.save(f1, ebi_res)
+
+        # efo
+        efo_res=[]
+        for t in efo_node_df["efo_label"]
+            sentence_vector = model.embed_sentence(preprocess_sentence(t))
+            ebi_res.append(sentence_vector[0])
+        np.save(f2, efo_res)
+        
+
 
 
 # create GUSE embeddings for EBI and EFO
@@ -340,7 +376,7 @@ def run_levenshtein(ebi_df, efo_node_df):
 def create_nx():
     # create nxontology network of EFO relationships
     logger.info("Creating nx...")
-    efo_rel_df = pd.read_csv(efo_rels_v1)
+    efo_rel_df = pd.read_csv(efo_rels)
     efo_nx = create_efo_nxo(
         df=efo_rel_df, child_col="efo.id", parent_col="parent_efo.id"
     )
@@ -526,7 +562,8 @@ def filter_paiwise_file(model_name):
 
 # read BLUEBERT-EFO data and filter
 def filter_bert(ebi_df, efo_node_df):
-    df = pd.read_csv(f"paper/data/efo_bert_inference_top100_no_underscores.csv.gz")
+    # need to get this file from the BLUEBERT-EFO API
+    df = pd.read_csv(f"paper/input/efo_bert_inference_top100_no_underscores.csv.gz")
     # lowercase
     df['text_1'] = df['text_1'].str.lower()
     df['text_2'] = df['text_2'].str.lower()
@@ -967,13 +1004,15 @@ def create_examples(efo_node_df):
 
 def run():
     # get efo node data
-    efo_node_df = efo_node_data_v1()
+    efo_node_df = efo_node_data()
     # get ebi efo data
     ebi_df = get_ebi_data(efo_node_df)
-    # create embeddings for ebi using vectology models
-    encode_ebi(ebi_df)
-    # create embedings for efo using vectology models
-    encode_efo(efo_node_df)
+    # create embeddings for ebi using bert models
+    bert_encode_ebi(ebi_df)
+    # create embedings for efo using bert models
+    bert_encode_efo(efo_node_df)
+    # run BioSentVec
+    run_biosentvec(ebi_df, efo_node_df)
     # run Google Universal
     run_guse(ebi_df, efo_node_df)
     # run spacy
@@ -1022,16 +1061,5 @@ def run():
     # create high/low/spread tables
     create_examples(efo_node_df)
 
-
-def dev():
-    efo_node_df = efo_node_data_v1()
-    ebi_df = get_ebi_data(efo_node_df)
-    describe_wa(f'{output2}/weighted-average-nx-10-all.csv')
-    # create summary tophits plot
-    #logger.info(ebi_df)
-    #get_top_hits(ebi_df,batet_score=1,category="all")
-    #t_test(ebi_df)
-
 if __name__ == "__main__":
     run()
-    #dev()
