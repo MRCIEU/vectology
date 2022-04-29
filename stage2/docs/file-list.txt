@@ -1,0 +1,84 @@
+# stage1 manuscript
+
+## main manuscript
+
+- fig1: NA
+- fig2:
+  - old: vectology-manuscript/manuscript/top-counts-batet-1.0-all.png
+  - revised: output/revised/top-counts-batet-1.0-all.png
+  - new:
+- fig3:
+  - A:
+    - old: vectology-manuscript/manuscript/weighted-average-nx-1-all.png
+    - revised: output/revised/weighted-average-nx-1-all.png
+    - new:
+  - B:
+    - old: vectology-manuscript/manuscript/weighted-average-nx-10-all.png
+    - revised: output/revised/weighted-average-nx-10-all.png
+    - new:
+- fig4:
+  - old: vectology-manuscript/manuscript/spearman.png
+  - revised: output/revised/cluster-spearman.png
+  - new:
+
+## supplementary
+
+- fig-s1:
+  - old: vectology-manuscript/manuscript/top-counts-batet-0.9-all.png
+  - revised: output/revised/top-counts-batet-0.9-all.png
+  - new:
+- fig-s2:
+  - old: vectology-manuscript/manuscript/top-counts-batet-0.8-all.png
+  - revised: output/revised/top-counts-batet-0.8-all.png
+  - new:
+- fig-s3:
+  - old: vectology-manuscript/manuscript/top-counts-batet-0.7-all.png
+  - revised: output/revised/top-counts-batet-0.7-all.png
+  - new:
+- fig-s4:
+  - old: vectology-manuscript/manuscript/wa-violin-plot.png
+  - revised: output/revised/weighted-average-violin-plot.png
+  - new:
+- fig-s5:
+  - old: vectology-manuscript/manuscript/sample-clustermap-EFO-batet-manual.png
+  - new:
+- fig-s6:
+  - old: vectology-manuscript/manuscript/mantel-manual.png
+  - new:
+- fig-s7:
+  - old: vectology-manuscript/manuscript/sample-clustermap-BLUEBERT-EFO-manual.png
+  - new:
+- fig-s8:
+  - old: vectology-manuscript/manuscript/sample-clustermap-Levenshtein-manual.png
+  - new:
+- fig-s9:
+  - old: vectology-manuscript/manuscript/sample-clustermap-SciSpacy-manual.png
+  - new:
+- fig-s10:
+  - old: vectology-manuscript/manuscript/sample-clustermap-Spacy-manual.png
+  - new:
+- fig-s11:
+  - old: vectology-manuscript/manuscript/sample-clustermap-GUSE-manual.png
+  - new:
+- fig-s12:
+  - old: vectology-manuscript/manuscript/sample-clustermap-BlueBERT-manual.png
+  - new:
+- fig-s13:
+  - old: vectology-manuscript/manuscript/sample-clustermap-BioBERT-manual.png
+  - new:
+- fig-s14:
+  - old: vectology-manuscript/manuscript/sample-clustermap-BioSentVec-manual.png
+  - new:
+- tbl-s1:
+  - old:
+  - new:
+- tbl-s2: NA
+- tbl-s3:
+  - old:
+  - new:
+- tbl-s4:
+  - old:
+  - new:
+- tbl-s5:
+  - old:
+  - new:
