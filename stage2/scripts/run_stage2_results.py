@@ -44,8 +44,8 @@ class Stage2Results(FlowSpec):
         print("top 1 results")
         if not top1_file_path.exists() or self.OVERWRITE:
             print("make results")
-            weighted_average_top1_df = mapping_routine.prep_weighted_average_df(
-                model_collection=self.model_collection, top_num=1, ebi_df=self.ebi_df
+            weighted_average_top1_df = mapping_routine.prep_weighted_average_df_new(
+                model_collection=self.model_collection, top_num=1
             )
             weighted_average_top1_df.to_csv(top1_file_path, index=False)
         else:
@@ -54,8 +54,8 @@ class Stage2Results(FlowSpec):
         print("top 10 results")
         if not top10_file_path.exists() or self.OVERWRITE:
             print("make results")
-            weighted_average_top10_df = mapping_routine.prep_weighted_average_df(
-                model_collection=self.model_collection, top_num=10, ebi_df=self.ebi_df
+            weighted_average_top10_df = mapping_routine.prep_weighted_average_df_new(
+                model_collection=self.model_collection, top_num=10
             )
             weighted_average_top10_df.to_csv(top10_file_path, index=False)
         else:

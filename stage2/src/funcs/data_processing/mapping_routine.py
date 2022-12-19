@@ -124,6 +124,7 @@ def calc_weighted_average(model_name, cache_path, ebi_df, top_num: int):
     logger.info(len(res))
     return res
 
+
 def prep_weighted_average_df_new(model_collection, top_num: int) -> pd.DataFrame:
     def _calc_wa(df, top_num):
         nx_scores = df["nx"].head(top_num).tolist()
@@ -139,7 +140,12 @@ def prep_weighted_average_df_new(model_collection, top_num: int) -> pd.DataFrame
         logger.info(model_name)
         assert cache_path.exists(), cache_path
         df = pd.read_csv(cache_path)
-        df = df.groupby("mapping_id").apply(lambda df: _calc_wa(df, top_num)).reset_index(drop=False).assign(Model=model_name)
+        df = (
+            df.groupby("mapping_id")
+            .apply(lambda df: _calc_wa(df, top_num))
+            .reset_index(drop=False)
+            .assign(Model=model_name)
+        )
         return df
 
     # zooma has no res above 1
@@ -147,13 +153,14 @@ def prep_weighted_average_df_new(model_collection, top_num: int) -> pd.DataFrame
         allowed_model_coll = {k: v for k, v in model_collection.items() if k != "Zooma"}
     else:
         allowed_model_coll = model_collection
-    res = pd.concat([
-        _calc_wa_df(
-            model_name=k,
-            cache_path=v["top_100"],
-            top_num=top_num,
-        )
-        for k, v in allowed_model_coll.items()
-
-    ]).reset_index(drop=True)
+    res = pd.concat(
+        [
+            _calc_wa_df(
+                model_name=k,
+                cache_path=v["top_100"],
+                top_num=top_num,
+            )
+            for k, v in allowed_model_coll.items()
+        ]
+    ).reset_index(drop=True)
     return res
