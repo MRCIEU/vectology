@@ -81,6 +81,19 @@ class Stage2Results(FlowSpec):
         else:
             mapping_agg_df = pd.read_csv(mapping_agg_df_path)
         print(mapping_agg_df)
+        self.next(self.make_unmapped)
+
+    @step
+    def make_unmapped(self):
+        output_dir = STAGE2_CACHE / "unmapped"
+        output_dir.mkdir(exist_ok=True)
+        df_agg = mapping_routine.get_trait_efo_unmapped(
+            ebi_data=self.ebi_df,
+            model_collection=self.model_collection,
+            output_dir=output_dir,
+            verbose=self.VERBOSE,
+        )
+        df_agg.to_csv(output_dir / "agg.csv", index=False)
         self.next(self.end)
 
     @step

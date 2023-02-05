@@ -164,3 +164,66 @@ def prep_weighted_average_df_new(model_collection, top_num: int) -> pd.DataFrame
         ]
     ).reset_index(drop=True)
     return res
+
+
+def get_trait_efo_unmapped(
+    ebi_data: pd.DataFrame,
+    model_collection: Dict[str, info.ModelInfo],
+    verbose: bool = False,
+    tsv_p: bool = False,
+    output_dir: Optional[Path] = None,
+) -> pd.DataFrame:
+    def _get_unmapped(
+        cache_path: Path,
+        model_name: str,
+        manual_df: pd.DataFrame,
+        mapping_types: List[str],
+        verbose: bool = False,
+        tsv_p: bool = False,
+    ) -> pd.DataFrame:
+        df = pd.read_csv(cache_path) if not tsv_p else pd.read_csv(cache_path, sep="\t")
+        if verbose:
+            ic(df.shape)
+        df = df.assign(
+            group_rank=lambda df: df.groupby(["mapping_id"]).cumcount(ascending=True)
+        )
+        df = df[df["nx"] >= 1.0]
+        # df = df.merge(
+        #     manual_df[["mapping_id", "MAPPING_TYPE"]], on="mapping_id"
+        # ).drop_duplicates(subset=["mapping_id", "manual"])
+        df = manual_df.merge(df[["mapping_id", "nx", "group_rank"]], on="mapping_id")
+        if verbose:
+            ic(df.shape)
+        df.loc[~df["MAPPING_TYPE"].isin(mapping_types), "MAPPING_TYPE"] = "Other"
+        df = df.assign(model_name=model_name)
+        if verbose:
+            ic(df.shape)
+        return df
+
+    assert output_dir is not None and output_dir.exists(), output_dir
+
+    top_100_cache = {k: v["top_100"] for k, v in model_collection.items()}
+    mapping_types = ["Exact", "Broad", "Narrow"]
+    manual_df = ebi_data
+    manual_df.loc[
+        ~manual_df["MAPPING_TYPE"].isin(mapping_types), "MAPPING_TYPE"
+    ] = "Other"
+
+    df_list = []
+    for k, v in top_100_cache.items():
+        df = _get_unmapped(
+            cache_path=v,
+            model_name=k,
+            manual_df=manual_df,
+            mapping_types=mapping_types,
+            verbose=verbose,
+            tsv_p=tsv_p,
+        )
+        df_list.append(df)
+
+        output_path = output_dir / f"{k}.csv"
+        logger.info(f"Write to {output_path}")
+        df.to_csv(output_path, index=False)
+    df_agg = pd.concat(df_list)
+
+    return df_agg
